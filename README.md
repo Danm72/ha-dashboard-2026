@@ -4,7 +4,7 @@ A modern, room-based sections dashboard for Home Assistant featuring quick acces
 
 ## Demo
 
-<video src="https://github.com/Danm72/ha-dashboard-2026/raw/main/screenshots/demo.mp4" autoplay loop muted playsinline width="100%"></video>
+![Dashboard Demo](screenshots/demo.gif)
 
 ## Overview
 
@@ -45,11 +45,7 @@ This dashboard uses the following custom card from HACS:
 
 | File | Description |
 |------|-------------|
-| `lovelace.dashboard_2026` | Complete dashboard with example entity IDs (JSON format for .storage) |
-| `lovelace.dashboard_template.yaml` | Clean template with UPPERCASE placeholders (YAML format for easier editing) |
-
-**Use the template** if you want a starting point to customize for your setup.
-**Use the full version** as a reference or if you want to see the complete working example.
+| `lovelace.dashboard_template.yaml` | Dashboard template with UPPERCASE placeholders for easy customization |
 
 ## Installation
 
@@ -63,24 +59,15 @@ Install the navbar-card via HACS:
 
 ### 2. Deploy the Dashboard
 
-**Option A: Copy to storage folder**
-
-1. Copy `lovelace.dashboard_2026` to your Home Assistant `.storage` folder
-2. Restart Home Assistant
-3. The dashboard will appear in your sidebar
-
-**Option B: Create via UI**
-
 1. Go to Settings > Dashboards > Add Dashboard
-2. Create a new dashboard with URL path `dashboard_2026`
-3. Switch to YAML mode
-4. Copy the contents of `data.config` from this file into your dashboard configuration
+2. Create a new dashboard (e.g. URL path `dashboard-2026`)
+3. Switch to YAML mode (click the three dots menu > Raw configuration editor)
+4. Paste the contents of `lovelace.dashboard_template.yaml` (after customizing placeholders)
+5. Save
 
 ### 3. Customize Entity IDs
 
-**Using the Template (Recommended):**
-
-The template file (`lovelace.dashboard_template.yaml`) uses UPPERCASE placeholders. Do a find/replace:
+The template uses UPPERCASE placeholders. Do a find/replace:
 
 ```
 LIVING_ROOM -> your_living_room_name
@@ -91,7 +78,7 @@ PERSON_1    -> your_name
 PERSON_2    -> partner_name
 ```
 
-**Placeholder patterns in the template:**
+**Placeholder patterns:**
 
 | Placeholder | Example replacement |
 |-------------|---------------------|
@@ -102,18 +89,6 @@ PERSON_2    -> partner_name
 | `binary_sensor.HALL_motion` | `binary_sensor.hall_pir` |
 | `input_number.OFFICE_target_temp` | `input_number.office_comfort_temp` |
 
-**Using the Full Version:**
-
-Replace specific entity IDs to match your setup:
-
-- `person.user_1`, `person.user_2` - Your person entities
-- `weather.forecast_home` - Your weather entity
-- `calendar.family` - Your calendar entity
-- `climate.*` - Your climate/TRV entities
-- `light.*` - Your light entities
-- `sensor.*_temperature` - Your temperature sensors
-- `binary_sensor.*_motion*` - Your motion sensors
-
 ## Screenshots
 
 See the [demo video](screenshots/demo.mp4) above for a full walkthrough of the dashboard.
@@ -121,7 +96,7 @@ See the [demo video](screenshots/demo.mp4) above for a full walkthrough of the d
 ## Structure
 
 ```
-lovelace.dashboard_2026
+Dashboard Structure
 ├── Home view (sections layout)
 │   ├── Status badges (persons, solar, heating)
 │   ├── Weather forecast
