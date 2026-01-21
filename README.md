@@ -2,6 +2,12 @@
 
 A modern, room-based sections dashboard for Home Assistant featuring quick access navigation, climate controls, and smart home monitoring.
 
+## Background
+
+This dashboard was built using [Claude Code](https://claude.ai/claude-code) with [ha-mcp](https://github.com/voska/home-assistant-mcp) - an MCP server that gives Claude direct access to Home Assistant's API. The full story of how this was created, including the design decisions and lessons learned, is in the blog post:
+
+**[Using Claude Code to Fix 3 Years of Home Assistant Tech Debt (Part 2)](https://dan-malone.com/blog/home-assistant-ai-implementation-part-2)**
+
 ## Demo
 
 ![Dashboard Demo](screenshots/demo.gif)
