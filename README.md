@@ -2,6 +2,12 @@
 
 A modern, room-based sections dashboard for Home Assistant featuring quick access navigation, climate controls, and smart home monitoring.
 
+## Demo
+
+https://github.com/user-attachments/assets/demo.mp4
+
+https://github.com/Danm72/ha-dashboard-2026/raw/main/screenshots/demo.mp4
+
 ## Overview
 
 This dashboard uses Home Assistant's native **sections view** layout with a consistent room-based navigation pattern. Each room has its own subview with dedicated controls for lights, climate, and sensors.
@@ -76,11 +82,7 @@ This dashboard uses specific entity IDs that you'll need to update to match your
 
 ## Screenshots
 
-<!-- Add your screenshots here -->
-
-| Home View | Room View |
-|-----------|-----------|
-| ![Home](screenshots/home.png) | ![Living Room](screenshots/living-room.png) |
+See the [demo video](screenshots/demo.mp4) above for a full walkthrough of the dashboard.
 
 ## Structure
 
