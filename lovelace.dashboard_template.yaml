@@ -1,0 +1,1634 @@
+# ============================================================================
+# Home Assistant Dashboard Template
+# ============================================================================
+#
+# This is a template dashboard for Home Assistant. Before using, you must
+# replace the UPPERCASE placeholder entity IDs with your actual entities.
+#
+# HOW TO USE:
+# 1. Copy this file to your Home Assistant config directory
+# 2. Use find/replace to substitute placeholders with your entity IDs
+# 3. Remove any sections you don't need (e.g., rooms you don't have)
+#
+# PLACEHOLDER PATTERNS:
+# ---------------------
+# Rooms:
+#   LIVING_ROOM, KITCHEN, BEDROOM, OFFICE, NURSERY, HALL, LANDING
+#
+# People:
+#   PERSON_1, PERSON_2 (replace with your person entity names)
+#
+# Entity patterns by type:
+#   person.PERSON_1                      -> Your first person
+#   person.PERSON_2                      -> Your second person
+#   light.ROOM_NAME_main                 -> Main/all lights for a room
+#   light.ROOM_NAME_1, _2, etc.          -> Individual lights
+#   light.ROOM_NAME_lamp                 -> Lamp lights
+#   sensor.ROOM_NAME_temperature         -> Temperature sensor
+#   input_number.ROOM_NAME_target_temp   -> Target temperature helper
+#   climate.ROOM_NAME_trv                -> TRV/radiator valve
+#   climate.ROOM_NAME_trv_1, _2          -> Multiple TRVs
+#   binary_sensor.ROOM_NAME_motion       -> Motion sensor
+#   automation.ROOM_NAME_heating         -> Heating automation
+#   automation.ROOM_NAME_motion_light    -> Motion-activated light automation
+#   cover.ROOM_NAME_blinds               -> Blinds/curtains
+#   media_player.ROOM_NAME_tv            -> TV
+#   media_player.ROOM_NAME_speaker       -> Speaker
+#   weather.HOME                         -> Weather entity
+#   calendar.FAMILY                      -> Family calendar
+#   climate.BOILER                       -> Central heating boiler
+#   sensor.BOILER_temperature            -> Boiler temperature sensor
+#
+# Optional/advanced entities (remove sections if not needed):
+#   sensor.HOT_WATER_temperature         -> Hot water temperature
+#   sensor.HEATING_trigger_source        -> Which room triggered heating
+#   counter.UNREAD_NOTIFICATIONS         -> Notification counter
+#   input_text.NOTIFICATION_SLOT_1-5     -> Notification slots
+#   fan.ROOM_NAME_fan                    -> Room fan
+#   input_button.ROOM_NAME_action        -> Quick action button
+#   input_boolean.ROOM_NAME_override     -> Manual override toggle
+#
+# NOTES:
+# - The navbar-card routes are left as-is (dashboard paths)
+# - card_mod styles are preserved for spacing cards
+# - Remove entire sections for rooms/features you don't have
+# - TRV visibility conditions hide cards when unavailable
+# ============================================================================
+
+views:
+  # ==========================================================================
+  # HOME VIEW - Main overview page
+  # ==========================================================================
+  - title: Home
+    path: home
+    type: sections
+    max_columns: 3
+    sections:
+      # Header with badges
+      - type: grid
+        column_span: 3
+        cards:
+          - type: heading
+            icon: mdi:home
+            heading: Home
+            heading_style: title
+            badges:
+              - type: entity
+                entity: person.PERSON_1
+                show_state: true
+                show_icon: true
+                color: accent
+              - type: entity
+                entity: climate.BOILER
+                show_state: true
+                show_icon: true
+                name: Heat
+              - type: entity
+                entity: sensor.HOT_WATER_temperature
+                show_state: true
+                show_icon: true
+                icon: mdi:shower
+
+      # Weather forecast
+      - cards:
+          - type: heading
+            heading: Weather
+          - show_current: false
+            show_forecast: true
+            type: weather-forecast
+            entity: weather.HOME
+            forecast_type: daily
+            round_temperature: true
+            grid_options:
+              columns: 12
+              rows: 2
+
+      # Calendar
+      - cards:
+          - type: heading
+            heading: Upcoming
+          - initial_view: listWeek
+            type: calendar
+            entities:
+              - calendar.FAMILY
+            grid_options:
+              columns: 12
+              rows: 5
+
+      # House Status
+      - cards:
+          - type: heading
+            heading: House Status
+          - type: entities
+            entities:
+              - entity: sensor.HALL_temperature
+                name: Temp
+              - entity: person.PERSON_1
+              - entity: person.PERSON_2
+
+      # Quick Actions
+      - cards:
+          - type: heading
+            heading: Quick Actions
+          - type: tile
+            entity: script.NIGHT_MODE
+            name: Night Mode
+            icon: mdi:weather-night
+          - type: tile
+            entity: script.ALL_OFF
+            name: All Off
+            icon: mdi:power-off
+          - type: tile
+            entity: scene.LIVING_ROOM_cozy
+            name: Cozy Scene
+            icon: mdi:sofa
+          - type: tile
+            entity: script.AWAY_MODE
+            name: Away Mode
+            icon: mdi:home-export-outline
+
+      # Now Playing (visible when media playing)
+      - visibility:
+          - condition: state
+            entity: media_player.LIVING_ROOM_speaker
+            state_not: unavailable
+        cards:
+          - type: heading
+            heading: Now Playing
+          - type: media-control
+            entity: media_player.LIVING_ROOM_speaker
+
+      # Notifications (visible when there are unread notifications)
+      - visibility:
+          - condition: numeric_state
+            entity: counter.UNREAD_NOTIFICATIONS
+            above: 0
+        cards:
+          - type: heading
+            heading: Notifications
+          - type: entities
+            entities:
+              - entity: input_text.NOTIFICATION_SLOT_1
+              - entity: input_text.NOTIFICATION_SLOT_2
+              - entity: input_text.NOTIFICATION_SLOT_3
+              - entity: input_text.NOTIFICATION_SLOT_4
+              - entity: input_text.NOTIFICATION_SLOT_5
+
+      # Navigation bar
+      - title: ""
+        cards:
+          - type: custom:navbar-card
+            routes:
+              - icon: mdi:home
+                url: /dashboard-2026/home
+              - icon: mdi:sofa
+                url: /dashboard-2026/living-room
+              - icon: mdi:silverware-fork-knife
+                url: /dashboard-2026/kitchen
+              - icon: mdi:bed
+                url: /dashboard-2026/bedroom
+              - icon: mdi:desk
+                url: /dashboard-2026/office
+              - icon: mdi:baby-carriage
+                url: /dashboard-2026/nursery
+              - icon: mdi:door
+                url: /dashboard-2026/hall
+              - icon: mdi:stairs
+                url: /dashboard-2026/landing
+
+      # Floor Light Controls
+      - cards:
+          - type: heading
+            heading: Floor Lights
+          - type: tile
+            entity: script.DOWNSTAIRS_OFF
+            name: Downstairs Off
+            icon: mdi:home-floor-0
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: scene.UPSTAIRS_ON
+            name: Upstairs On
+            icon: mdi:home-floor-1
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: scene.UPSTAIRS_OFF
+            name: Upstairs Off
+            icon: mdi:home-floor-1
+            grid_options:
+              columns: 6
+              rows: 1
+
+  # ==========================================================================
+  # LIVING ROOM VIEW
+  # ==========================================================================
+  - title: Living Room
+    path: living-room
+    subview: true
+    type: sections
+    max_columns: 2
+    sections:
+      # Header
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:sofa
+            heading_style: title
+            heading: Living Room
+            badges:
+              - type: entity
+                entity: light.LIVING_ROOM_main
+                show_state: true
+                show_icon: true
+                color: accent
+                name: Lights
+              - type: entity
+                entity: sensor.LIVING_ROOM_temperature
+                show_state: true
+                show_icon: true
+              - type: entity
+                entity: input_number.LIVING_ROOM_target_temp
+                show_state: true
+                show_icon: true
+              - type: entity
+                entity: binary_sensor.LIVING_ROOM_motion
+                show_state: true
+                show_icon: true
+                icon: mdi:motion-sensor
+        column_span: 2
+
+      # Quick Actions
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:lightning-bolt
+            heading_style: title
+            heading: Quick Actions
+          - type: tile
+            entity: scene.LIVING_ROOM_cozy
+            name: Cozy Scene
+            tap_action:
+              action: toggle
+            grid_options:
+              columns: 6
+              rows: 1
+
+      # Lights
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:ceiling-light
+            heading_style: title
+            heading: Lights
+          - type: tile
+            entity: light.LIVING_ROOM_main
+            vertical: false
+            show_entity_picture: false
+            hide_state: false
+            features:
+              - type: light-brightness
+            features_position: inline
+            grid_options:
+              columns: 6
+              rows: 1
+            name: All
+          - type: tile
+            entity: light.LIVING_ROOM_lamp
+            name: Lamp
+          - type: tile
+            entity: light.LIVING_ROOM_1
+            name: Light 1
+          - type: tile
+            entity: light.LIVING_ROOM_2
+            name: Light 2
+
+      # Climate
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:thermometer
+            heading_style: title
+            heading: Climate
+            badges:
+              - type: entity
+                entity: sensor.LIVING_ROOM_temperature
+                show_state: true
+                show_icon: true
+          - type: tile
+            entity: input_number.LIVING_ROOM_target_temp
+            name: Target
+            hide_state: true
+            vertical: false
+            show_entity_picture: false
+            features:
+              - type: numeric-input
+                style: buttons
+            grid_options:
+              columns: 6
+              rows: 1
+            features_position: inline
+          - type: tile
+            entity: climate.LIVING_ROOM_trv
+            grid_options:
+              columns: 3
+              rows: 1
+            name: TRV
+            visibility:
+              - condition: state
+                entity: climate.LIVING_ROOM_trv
+                state_not: unavailable
+          - type: tile
+            entity: sensor.LIVING_ROOM_temperature
+            name: Temperature
+            grid_options:
+              columns: 3
+              rows: 2
+            features:
+              - type: trend-chart
+            visibility:
+              - condition: state
+                entity: sensor.LIVING_ROOM_temperature
+                state_not: unavailable
+
+      # Motion
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:motion-sensor
+            heading_style: title
+            heading: Motion
+            badges:
+              - type: entity
+                entity: binary_sensor.LIVING_ROOM_motion
+                show_state: true
+                show_icon: true
+                icon: mdi:motion-sensor
+          - type: tile
+            entity: binary_sensor.LIVING_ROOM_motion
+            name: Motion
+            show_entity_picture: false
+            hide_state: false
+            state_content:
+              - state
+              - last-changed
+            visibility:
+              - condition: state
+                entity: binary_sensor.LIVING_ROOM_motion
+                state_not: unavailable
+
+      # Automations
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:robot
+            heading_style: title
+            heading: Automations
+          - type: tile
+            entity: automation.LIVING_ROOM_heating
+            tap_action:
+              action: toggle
+            hold_action:
+              action: more-info
+            grid_options:
+              columns: 6
+              rows: 1
+            name: Heating
+
+      # Extras
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:dots-horizontal
+            heading_style: title
+            heading: Extras
+          - type: tile
+            entity: cover.LIVING_ROOM_curtain
+            name: Curtain
+            vertical: false
+            features_position: inline
+            features:
+              - type: cover-position
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: media_player.LIVING_ROOM_tv
+            name: TV
+
+      # Spacer
+      - type: grid
+        column_span: 2
+        cards:
+          - type: markdown
+            content: " "
+            card_mod:
+              style: "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+
+      # Navigation
+      - title: ""
+        cards:
+          - type: custom:navbar-card
+            routes:
+              - icon: mdi:home
+                url: /dashboard-2026/home
+              - icon: mdi:sofa
+                url: /dashboard-2026/living-room
+              - icon: mdi:silverware-fork-knife
+                url: /dashboard-2026/kitchen
+              - icon: mdi:bed
+                url: /dashboard-2026/bedroom
+              - icon: mdi:desk
+                url: /dashboard-2026/office
+              - icon: mdi:baby-carriage
+                url: /dashboard-2026/nursery
+              - icon: mdi:door
+                url: /dashboard-2026/hall
+              - icon: mdi:stairs
+                url: /dashboard-2026/landing
+
+  # ==========================================================================
+  # KITCHEN VIEW
+  # ==========================================================================
+  - title: Kitchen
+    path: kitchen
+    subview: true
+    type: sections
+    max_columns: 2
+    sections:
+      # Header
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:silverware-fork-knife
+            heading: Kitchen
+            heading_style: title
+            badges:
+              - type: entity
+                show_state: true
+                show_icon: true
+                entity: light.KITCHEN_main
+                color: accent
+              - type: entity
+                show_state: true
+                show_icon: true
+                entity: sensor.KITCHEN_temperature
+              - type: entity
+                show_state: true
+                show_icon: true
+                entity: climate.BOILER
+                tap_action:
+                  action: more-info
+              - type: entity
+                entity: binary_sensor.KITCHEN_motion
+                show_state: true
+                show_icon: true
+                icon: mdi:motion-sensor
+        column_span: 2
+
+      # Lights
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:ceiling-light
+            heading_style: title
+            heading: Lights
+          - type: tile
+            entity: light.KITCHEN_main
+            name: All
+            vertical: false
+            show_entity_picture: false
+            features:
+              - type: light-brightness
+            features_position: inline
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: light.KITCHEN_group
+            name: Group
+            vertical: false
+            show_entity_picture: false
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: light.KITCHEN_center
+            name: Center
+            vertical: false
+            show_entity_picture: false
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: light.KITCHEN_cooking
+            name: Cooking
+            vertical: false
+            show_entity_picture: false
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: light.KITCHEN_pantry
+            name: Pantry
+            vertical: false
+            show_entity_picture: false
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: light.KITCHEN_strip
+            name: Strip
+            icon: mdi:led-strip
+            vertical: false
+            show_entity_picture: false
+            grid_options:
+              columns: 6
+              rows: 1
+
+      # Climate
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:thermometer
+            heading_style: title
+            heading: Climate
+            badges:
+              - type: entity
+                entity: sensor.KITCHEN_temperature
+                show_state: true
+                show_icon: true
+          - type: tile
+            entity: input_number.KITCHEN_target_temp
+            name: Target
+            hide_state: true
+            vertical: false
+            show_entity_picture: false
+            features:
+              - type: numeric-input
+                style: buttons
+            grid_options:
+              columns: 6
+              rows: 1
+            features_position: inline
+          - type: tile
+            entity: climate.BOILER
+            state_content:
+              - state
+              - initial
+              - last-changed
+            features:
+              - type: target-temperature
+            grid_options:
+              columns: 6
+              rows: 2
+            features_position: bottom
+          - type: tile
+            entity: climate.KITCHEN_trv_1
+            name: TRV 1
+            state_content: temperature
+            grid_options:
+              columns: 3
+              rows: 1
+            visibility:
+              - condition: state
+                entity: climate.KITCHEN_trv_1
+                state_not: unavailable
+          - type: tile
+            entity: climate.KITCHEN_trv_2
+            name: TRV 2
+            state_content: temperature
+            grid_options:
+              columns: 3
+              rows: 1
+            visibility:
+              - condition: state
+                entity: climate.KITCHEN_trv_2
+                state_not: unavailable
+          - type: tile
+            entity: sensor.KITCHEN_temperature
+            name: Temperature
+            grid_options:
+              columns: 3
+              rows: 2
+            features:
+              - type: trend-chart
+            visibility:
+              - condition: state
+                entity: sensor.KITCHEN_temperature
+                state_not: unavailable
+
+      # Motion
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:motion-sensor
+            heading_style: title
+            heading: Motion
+            badges:
+              - type: entity
+                entity: binary_sensor.KITCHEN_motion
+                show_state: true
+                show_icon: true
+                icon: mdi:motion-sensor
+          - type: tile
+            entity: binary_sensor.KITCHEN_motion
+            name: Motion
+            show_entity_picture: false
+            hide_state: false
+            state_content:
+              - state
+              - last-changed
+            visibility:
+              - condition: state
+                entity: binary_sensor.KITCHEN_motion
+                state_not: unavailable
+
+      # Automations
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:robot
+            heading_style: title
+            heading: Automations
+          - type: tile
+            entity: automation.KITCHEN_heating
+            name: Heating
+            grid_options:
+              columns: 6
+              rows: 1
+
+      # Extras
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:dots-horizontal
+            heading_style: title
+            heading: Extras
+          - type: tile
+            entity: cover.KITCHEN_blinds
+            name: Blind
+            vertical: false
+            features_position: inline
+            features:
+              - type: cover-position
+              - type: cover-open-close
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: input_boolean.KITCHEN_blinds_override
+            name: Manual Override
+            vertical: false
+            features:
+              - type: toggle
+            features_position: bottom
+
+      # Spacer
+      - type: grid
+        column_span: 2
+        cards:
+          - type: markdown
+            content: " "
+            card_mod:
+              style: "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+
+      # Navigation
+      - title: ""
+        cards:
+          - type: custom:navbar-card
+            routes:
+              - icon: mdi:home
+                url: /dashboard-2026/home
+              - icon: mdi:sofa
+                url: /dashboard-2026/living-room
+              - icon: mdi:silverware-fork-knife
+                url: /dashboard-2026/kitchen
+              - icon: mdi:bed
+                url: /dashboard-2026/bedroom
+              - icon: mdi:desk
+                url: /dashboard-2026/office
+              - icon: mdi:baby-carriage
+                url: /dashboard-2026/nursery
+              - icon: mdi:door
+                url: /dashboard-2026/hall
+              - icon: mdi:stairs
+                url: /dashboard-2026/landing
+
+  # ==========================================================================
+  # BEDROOM VIEW
+  # ==========================================================================
+  - title: Bedroom
+    path: bedroom
+    subview: true
+    type: sections
+    max_columns: 2
+    sections:
+      # Header
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:bed
+            heading_style: title
+            heading: Bedroom
+            badges:
+              - type: entity
+                entity: light.BEDROOM_main
+                show_state: true
+                show_icon: true
+                color: accent
+                name: Lights
+              - type: entity
+                entity: input_number.BEDROOM_target_temp
+                show_state: true
+                show_icon: true
+                icon: mdi:sun-thermometer
+        column_span: 2
+
+      # Quick Actions
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:lightning-bolt
+            heading_style: title
+            heading: Quick Actions
+          - type: tile
+            entity: input_button.BEDROOM_boost
+            name: Boost
+            tap_action:
+              action: call-service
+              service: input_button.press
+              target:
+                entity_id: input_button.BEDROOM_boost
+            grid_options:
+              columns: 6
+              rows: 1
+
+      # Lights
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:ceiling-light
+            heading_style: title
+            heading: Lights
+          - type: tile
+            entity: light.BEDROOM_main
+            name: All
+            vertical: false
+            show_entity_picture: false
+            features:
+              - type: light-brightness
+            features_position: inline
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: light.BEDROOM_bedside_1
+            name: Bedside 1
+          - type: tile
+            entity: light.BEDROOM_bedside_2
+            name: Bedside 2
+
+      # Climate
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:thermometer
+            heading_style: title
+            heading: Climate
+            badges:
+              - type: entity
+                entity: sensor.BEDROOM_temperature
+                show_state: true
+                show_icon: true
+          - type: tile
+            entity: input_number.BEDROOM_target_temp
+            name: Target
+            hide_state: true
+            vertical: false
+            show_entity_picture: false
+            features:
+              - type: numeric-input
+                style: buttons
+            grid_options:
+              columns: 6
+              rows: 1
+            features_position: inline
+          - type: tile
+            entity: climate.BEDROOM_trv_1
+            name: TRV 1
+            grid_options:
+              columns: 3
+              rows: 1
+            visibility:
+              - condition: state
+                entity: climate.BEDROOM_trv_1
+                state_not: unavailable
+          - type: tile
+            entity: climate.BEDROOM_trv_2
+            name: TRV 2
+            grid_options:
+              columns: 3
+              rows: 1
+            visibility:
+              - condition: state
+                entity: climate.BEDROOM_trv_2
+                state_not: unavailable
+          - type: tile
+            entity: sensor.BEDROOM_temperature
+            name: Temperature
+            grid_options:
+              columns: 3
+              rows: 2
+            features:
+              - type: trend-chart
+            visibility:
+              - condition: state
+                entity: sensor.BEDROOM_temperature
+                state_not: unavailable
+          - type: tile
+            entity: fan.BEDROOM_fan
+            name: Fan
+            vertical: false
+            features:
+              - type: fan-speed
+            grid_options:
+              columns: 6
+              rows: 1
+            features_position: inline
+
+      # Motion
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:motion-sensor
+            heading_style: title
+            heading: Motion
+            badges: []
+
+      # Automations
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:robot
+            heading_style: title
+            heading: Automations
+          - type: tile
+            entity: automation.BEDROOM_heating
+            name: Heating
+            tap_action:
+              action: toggle
+            hold_action:
+              action: more-info
+            grid_options:
+              columns: 6
+              rows: 1
+
+      # Extras
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:dots-horizontal
+            heading_style: title
+            heading: Extras
+          - type: tile
+            entity: cover.BEDROOM_blinds_1
+            name: Blind 1
+            vertical: false
+            features_position: inline
+            features:
+              - type: cover-position
+              - type: cover-open-close
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: cover.BEDROOM_blinds_2
+            name: Blind 2
+            vertical: false
+            features_position: inline
+            features:
+              - type: cover-position
+              - type: cover-open-close
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: cover.BEDROOM_blinds_all
+            name: All Blinds
+            vertical: false
+            features_position: inline
+            features:
+              - type: cover-position
+              - type: cover-open-close
+            grid_options:
+              columns: 6
+              rows: 1
+
+      # Spacer
+      - type: grid
+        column_span: 2
+        cards:
+          - type: markdown
+            content: " "
+            card_mod:
+              style: "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+
+      # Navigation
+      - title: ""
+        cards:
+          - type: custom:navbar-card
+            routes:
+              - icon: mdi:home
+                url: /dashboard-2026/home
+              - icon: mdi:sofa
+                url: /dashboard-2026/living-room
+              - icon: mdi:silverware-fork-knife
+                url: /dashboard-2026/kitchen
+              - icon: mdi:bed
+                url: /dashboard-2026/bedroom
+              - icon: mdi:desk
+                url: /dashboard-2026/office
+              - icon: mdi:baby-carriage
+                url: /dashboard-2026/nursery
+              - icon: mdi:door
+                url: /dashboard-2026/hall
+              - icon: mdi:stairs
+                url: /dashboard-2026/landing
+
+  # ==========================================================================
+  # OFFICE VIEW
+  # ==========================================================================
+  - title: Office
+    path: office
+    subview: true
+    type: sections
+    max_columns: 2
+    sections:
+      # Header
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:desk
+            heading_style: title
+            heading: Office
+            badges:
+              - type: entity
+                entity: light.OFFICE_main
+                show_state: true
+                show_icon: true
+                color: accent
+              - type: entity
+                entity: sensor.OFFICE_temperature
+                show_state: true
+                show_icon: true
+              - type: entity
+                entity: input_number.OFFICE_target_temp
+                show_state: true
+                show_icon: true
+              - type: entity
+                entity: binary_sensor.OFFICE_motion
+                show_state: true
+                show_icon: true
+                icon: mdi:motion-sensor
+        column_span: 2
+
+      # Lights
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:ceiling-light
+            heading_style: title
+            heading: Lights
+          - type: tile
+            entity: light.OFFICE_main
+            name: All
+            vertical: false
+            show_entity_picture: false
+            features:
+              - type: light-brightness
+            features_position: inline
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: light.OFFICE_lamp
+            name: Lamp
+            icon: mdi:lamp
+          - type: tile
+            entity: light.OFFICE_desk
+            name: Desk
+          - type: tile
+            entity: light.OFFICE_spot
+            name: Spot
+          - type: tile
+            entity: light.OFFICE_strip
+            name: Strip
+          - type: tile
+            entity: light.OFFICE_accent
+            name: Accent
+
+      # Climate
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:thermometer
+            heading_style: title
+            heading: Climate
+            badges:
+              - type: entity
+                entity: sensor.OFFICE_temperature
+                show_state: true
+                show_icon: true
+          - type: tile
+            entity: input_number.OFFICE_target_temp
+            name: Target
+            hide_state: true
+            vertical: false
+            show_entity_picture: false
+            features:
+              - type: numeric-input
+                style: buttons
+            grid_options:
+              columns: 6
+              rows: 1
+            features_position: inline
+          - type: tile
+            entity: climate.OFFICE_trv
+            name: TRV
+            grid_options:
+              columns: 3
+              rows: 1
+            visibility:
+              - condition: state
+                entity: climate.OFFICE_trv
+                state_not: unavailable
+          - type: tile
+            entity: sensor.OFFICE_temperature
+            name: Temperature
+            grid_options:
+              columns: 3
+              rows: 2
+            features:
+              - type: trend-chart
+            visibility:
+              - condition: state
+                entity: sensor.OFFICE_temperature
+                state_not: unavailable
+
+      # Motion
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:motion-sensor
+            heading_style: title
+            heading: Motion
+            badges:
+              - type: entity
+                entity: binary_sensor.OFFICE_motion
+                show_state: true
+                show_icon: true
+                icon: mdi:motion-sensor
+          - type: tile
+            entity: binary_sensor.OFFICE_motion
+            name: Motion
+            show_entity_picture: false
+            hide_state: false
+            state_content:
+              - state
+              - last-changed
+            visibility:
+              - condition: state
+                entity: binary_sensor.OFFICE_motion
+                state_not: unavailable
+
+      # Automations
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:robot
+            heading_style: title
+            heading: Automations
+          - type: tile
+            entity: automation.OFFICE_heating
+            name: Heating
+            tap_action:
+              action: toggle
+            hold_action:
+              action: more-info
+            grid_options:
+              columns: 6
+              rows: 1
+
+      # Extras
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:dots-horizontal
+            heading_style: title
+            heading: Extras
+          - type: tile
+            entity: cover.OFFICE_curtain
+            name: Curtain
+            vertical: false
+            features_position: inline
+            features:
+              - type: cover-open-close
+              - type: cover-position
+            grid_options:
+              columns: 6
+              rows: 1
+
+      # Spacer
+      - type: grid
+        column_span: 2
+        cards:
+          - type: markdown
+            content: " "
+            card_mod:
+              style: "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+
+      # Navigation
+      - title: ""
+        cards:
+          - type: custom:navbar-card
+            routes:
+              - icon: mdi:home
+                url: /dashboard-2026/home
+              - icon: mdi:sofa
+                url: /dashboard-2026/living-room
+              - icon: mdi:silverware-fork-knife
+                url: /dashboard-2026/kitchen
+              - icon: mdi:bed
+                url: /dashboard-2026/bedroom
+              - icon: mdi:desk
+                url: /dashboard-2026/office
+              - icon: mdi:baby-carriage
+                url: /dashboard-2026/nursery
+              - icon: mdi:door
+                url: /dashboard-2026/hall
+              - icon: mdi:stairs
+                url: /dashboard-2026/landing
+
+  # ==========================================================================
+  # NURSERY VIEW
+  # ==========================================================================
+  - title: Nursery
+    path: nursery
+    subview: true
+    type: sections
+    max_columns: 2
+    sections:
+      # Header
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:baby-carriage
+            heading_style: title
+            heading: Nursery
+            badges:
+              - type: entity
+                entity: light.NURSERY_main
+                show_state: true
+                show_icon: true
+                color: accent
+              - type: entity
+                entity: binary_sensor.NURSERY_motion
+                show_state: true
+                show_icon: true
+                icon: mdi:motion-sensor
+        column_span: 2
+
+      # Motion
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:motion-sensor
+            heading_style: title
+            heading: Motion
+            badges:
+              - type: entity
+                entity: binary_sensor.NURSERY_motion
+                show_state: true
+                show_icon: true
+                icon: mdi:motion-sensor
+          - type: tile
+            entity: binary_sensor.NURSERY_motion
+            name: Camera Motion
+            show_entity_picture: false
+            hide_state: false
+            state_content:
+              - state
+              - last-changed
+            visibility:
+              - condition: state
+                entity: binary_sensor.NURSERY_motion
+                state_not: unavailable
+
+      # Lights
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:ceiling-light
+            heading_style: title
+            heading: Lights
+          - type: tile
+            entity: light.NURSERY_main
+            name: Nursery Light
+
+      # Extras
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:dots-horizontal
+            heading_style: title
+            heading: Extras
+          - type: tile
+            entity: media_player.NURSERY_speaker
+            name: Nursery Speaker
+
+      # Spacer
+      - type: grid
+        column_span: 2
+        cards:
+          - type: markdown
+            content: " "
+            card_mod:
+              style: "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+
+      # Navigation
+      - title: ""
+        cards:
+          - type: custom:navbar-card
+            routes:
+              - icon: mdi:home
+                url: /dashboard-2026/home
+              - icon: mdi:sofa
+                url: /dashboard-2026/living-room
+              - icon: mdi:silverware-fork-knife
+                url: /dashboard-2026/kitchen
+              - icon: mdi:bed
+                url: /dashboard-2026/bedroom
+              - icon: mdi:desk
+                url: /dashboard-2026/office
+              - icon: mdi:baby-carriage
+                url: /dashboard-2026/nursery
+              - icon: mdi:door
+                url: /dashboard-2026/hall
+              - icon: mdi:stairs
+                url: /dashboard-2026/landing
+
+  # ==========================================================================
+  # HALL VIEW
+  # ==========================================================================
+  - title: Hall
+    path: hall
+    subview: true
+    type: sections
+    max_columns: 2
+    sections:
+      # Header
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:door
+            heading_style: title
+            heading: Hall
+            badges:
+              - type: entity
+                entity: light.HALL_main
+                show_state: true
+                show_icon: true
+                color: accent
+              - type: entity
+                entity: climate.HALL_trv
+                show_state: true
+                show_icon: true
+              - type: entity
+                entity: binary_sensor.HALL_motion
+                show_state: true
+                show_icon: true
+                icon: mdi:motion-sensor
+        column_span: 2
+
+      # Lights
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:ceiling-light
+            heading_style: title
+            heading: Lights
+          - type: tile
+            entity: light.HALL_main
+            name: All
+            vertical: false
+            show_entity_picture: false
+            features:
+              - type: light-brightness
+            features_position: inline
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: light.HALL_1
+            name: Light 1
+          - type: tile
+            entity: light.HALL_2
+            name: Light 2
+          - type: tile
+            entity: light.HALL_3
+            name: Light 3
+          - type: tile
+            entity: light.HALL_lamp
+            name: Lamp
+
+      # Climate
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:thermometer
+            heading_style: title
+            heading: Climate
+            badges:
+              - type: entity
+                entity: climate.HALL_trv
+                show_state: true
+                show_icon: true
+          - type: tile
+            entity: input_number.HALL_target_temp
+            name: Target
+            hide_state: true
+            vertical: false
+            show_entity_picture: false
+            features:
+              - type: numeric-input
+                style: buttons
+            grid_options:
+              columns: 6
+              rows: 1
+            features_position: inline
+          - type: tile
+            entity: climate.HALL_trv
+            name: TRV
+            grid_options:
+              columns: 3
+              rows: 1
+            visibility:
+              - condition: state
+                entity: climate.HALL_trv
+                state_not: unavailable
+
+      # Motion
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:motion-sensor
+            heading_style: title
+            heading: Motion
+            badges:
+              - type: entity
+                entity: binary_sensor.HALL_motion
+                show_state: true
+                show_icon: true
+                icon: mdi:motion-sensor
+          - type: tile
+            entity: binary_sensor.HALL_motion
+            name: Motion
+            show_entity_picture: false
+            hide_state: false
+            state_content:
+              - state
+              - last-changed
+            visibility:
+              - condition: state
+                entity: binary_sensor.HALL_motion
+                state_not: unavailable
+
+      # Automations
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:robot
+            heading_style: title
+            heading: Automations
+          - type: tile
+            entity: automation.HALL_motion_light
+            name: Sensor Light
+            tap_action:
+              action: toggle
+            hold_action:
+              action: more-info
+            grid_options:
+              columns: 6
+              rows: 1
+
+      # Extras
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:dots-horizontal
+            heading_style: title
+            heading: Extras
+
+      # Spacer
+      - type: grid
+        column_span: 2
+        cards:
+          - type: markdown
+            content: " "
+            card_mod:
+              style: "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+
+      # Navigation
+      - title: ""
+        cards:
+          - type: custom:navbar-card
+            routes:
+              - icon: mdi:home
+                url: /dashboard-2026/home
+              - icon: mdi:sofa
+                url: /dashboard-2026/living-room
+              - icon: mdi:silverware-fork-knife
+                url: /dashboard-2026/kitchen
+              - icon: mdi:bed
+                url: /dashboard-2026/bedroom
+              - icon: mdi:desk
+                url: /dashboard-2026/office
+              - icon: mdi:baby-carriage
+                url: /dashboard-2026/nursery
+              - icon: mdi:door
+                url: /dashboard-2026/hall
+              - icon: mdi:stairs
+                url: /dashboard-2026/landing
+
+  # ==========================================================================
+  # LANDING VIEW
+  # ==========================================================================
+  - title: Landing
+    path: landing
+    subview: true
+    type: sections
+    max_columns: 2
+    sections:
+      # Header
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:stairs
+            heading_style: title
+            heading: Landing
+            badges:
+              - type: entity
+                entity: light.LANDING_main
+                show_state: true
+                show_icon: true
+                color: accent
+              - type: entity
+                entity: climate.LANDING_trv
+                show_state: true
+                show_icon: true
+              - type: entity
+                entity: binary_sensor.LANDING_motion
+                show_state: true
+                show_icon: true
+                icon: mdi:motion-sensor
+        column_span: 2
+
+      # Lights
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:ceiling-light
+            heading_style: title
+            heading: Lights
+          - type: tile
+            entity: light.LANDING_main
+            name: All
+            vertical: false
+            show_entity_picture: false
+            features:
+              - type: light-brightness
+            features_position: inline
+            grid_options:
+              columns: 6
+              rows: 1
+          - type: tile
+            entity: light.LANDING_lamp
+            name: Lamp
+          - type: tile
+            entity: light.LANDING_top
+            name: Top
+          - type: tile
+            entity: light.LANDING_stairs
+            name: Stairs
+          - type: tile
+            entity: light.LANDING_1
+            name: Light 1
+
+      # Climate
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:thermometer
+            heading_style: title
+            heading: Climate
+            badges:
+              - type: entity
+                entity: climate.LANDING_trv
+                show_state: true
+                show_icon: true
+          - type: tile
+            entity: climate.LANDING_trv
+            name: TRV
+            grid_options:
+              columns: 3
+              rows: 1
+            visibility:
+              - condition: state
+                entity: climate.LANDING_trv
+                state_not: unavailable
+
+      # Motion
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:motion-sensor
+            heading_style: title
+            heading: Motion
+            badges:
+              - type: entity
+                entity: binary_sensor.LANDING_motion
+                show_state: true
+                show_icon: true
+                icon: mdi:motion-sensor
+          - type: tile
+            entity: binary_sensor.LANDING_motion
+            name: Motion
+            show_entity_picture: false
+            hide_state: false
+            state_content:
+              - state
+              - last-changed
+            visibility:
+              - condition: state
+                entity: binary_sensor.LANDING_motion
+                state_not: unavailable
+
+      # Automations
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:robot
+            heading_style: title
+            heading: Automations
+          - type: tile
+            entity: automation.LANDING_motion_light
+            name: Motion Light
+            tap_action:
+              action: toggle
+            hold_action:
+              action: more-info
+            grid_options:
+              columns: 6
+              rows: 1
+
+      # Extras
+      - type: grid
+        cards:
+          - type: heading
+            icon: mdi:dots-horizontal
+            heading_style: title
+            heading: Extras
+
+      # Spacer
+      - type: grid
+        column_span: 2
+        cards:
+          - type: markdown
+            content: " "
+            card_mod:
+              style: "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+
+      # Navigation
+      - title: ""
+        cards:
+          - type: custom:navbar-card
+            routes:
+              - icon: mdi:home
+                url: /dashboard-2026/home
+              - icon: mdi:sofa
+                url: /dashboard-2026/living-room
+              - icon: mdi:silverware-fork-knife
+                url: /dashboard-2026/kitchen
+              - icon: mdi:bed
+                url: /dashboard-2026/bedroom
+              - icon: mdi:desk
+                url: /dashboard-2026/office
+              - icon: mdi:baby-carriage
+                url: /dashboard-2026/nursery
+              - icon: mdi:door
+                url: /dashboard-2026/hall
+              - icon: mdi:stairs
+                url: /dashboard-2026/landing

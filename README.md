@@ -43,6 +43,16 @@ This dashboard uses the following custom card from HACS:
 |------|------------|---------|
 | [navbar-card](https://github.com/nicknomo/lovelace-navbar-card) | nicknomo/lovelace-navbar-card | Room navigation bar at bottom of each view |
 
+## Files
+
+| File | Description |
+|------|-------------|
+| `lovelace.dashboard_2026` | Complete dashboard with example entity IDs (JSON format for .storage) |
+| `lovelace.dashboard_template.yaml` | Clean template with UPPERCASE placeholders (YAML format for easier editing) |
+
+**Use the template** if you want a starting point to customize for your setup.
+**Use the full version** as a reference or if you want to see the complete working example.
+
 ## Installation
 
 ### 1. Install Required Cards
@@ -70,7 +80,33 @@ Install the navbar-card via HACS:
 
 ### 3. Customize Entity IDs
 
-This dashboard uses specific entity IDs that you'll need to update to match your setup:
+**Using the Template (Recommended):**
+
+The template file (`lovelace.dashboard_template.yaml`) uses UPPERCASE placeholders. Do a find/replace:
+
+```
+LIVING_ROOM -> your_living_room_name
+KITCHEN     -> kitchen (or your name)
+BEDROOM     -> master_bedroom
+OFFICE      -> home_office
+PERSON_1    -> your_name
+PERSON_2    -> partner_name
+```
+
+**Placeholder patterns in the template:**
+
+| Placeholder | Example replacement |
+|-------------|---------------------|
+| `person.PERSON_1` | `person.john` |
+| `light.LIVING_ROOM_main` | `light.lounge_ceiling` |
+| `sensor.KITCHEN_temperature` | `sensor.kitchen_temp_sensor` |
+| `climate.BEDROOM_trv` | `climate.bedroom_radiator` |
+| `binary_sensor.HALL_motion` | `binary_sensor.hall_pir` |
+| `input_number.OFFICE_target_temp` | `input_number.office_comfort_temp` |
+
+**Using the Full Version:**
+
+Replace specific entity IDs to match your setup:
 
 - `person.user_1`, `person.user_2` - Your person entities
 - `weather.forecast_home` - Your weather entity
