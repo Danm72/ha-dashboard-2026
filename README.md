@@ -4,9 +4,7 @@ A modern, room-based sections dashboard for Home Assistant featuring quick acces
 
 ## Demo
 
-https://github.com/user-attachments/assets/demo.mp4
-
-https://github.com/Danm72/ha-dashboard-2026/raw/main/screenshots/demo.mp4
+<video src="https://github.com/Danm72/ha-dashboard-2026/raw/main/screenshots/demo.mp4" autoplay loop muted playsinline width="100%"></video>
 
 ## Overview
 
