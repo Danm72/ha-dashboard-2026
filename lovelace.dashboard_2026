@@ -1,0 +1,2585 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "lovelace.dashboard_2026",
+  "data": {
+    "config": {
+      "views": [
+        {
+          "title": "Home",
+          "path": "home",
+          "type": "sections",
+          "max_columns": 3,
+          "sections": [
+            {
+              "type": "grid",
+              "column_span": 3,
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:home",
+                  "heading": "Home",
+                  "heading_style": "title",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "person.user_1",
+                      "show_state": true,
+                      "show_icon": true,
+                      "color": "accent"
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "sensor.solis_remaining_battery_capacity",
+                      "show_state": true,
+                      "show_icon": true,
+                      "name": "Solar"
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "sensor.solis_battery_power",
+                      "show_state": true,
+                      "show_icon": true,
+                      "name": "Charging"
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "climate.boiler",
+                      "show_state": true,
+                      "show_icon": true,
+                      "name": "Heat"
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "sensor.heating_trigger_source",
+                      "show_state": true,
+                      "show_icon": true
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "sensor.hotpress_hot_water_monitor_temperature",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:shower"
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "sensor.bin_collection",
+                      "show_state": true,
+                      "show_icon": true,
+                      "name": "Bins",
+                      "icon": "mdi:trash-can"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "cards": [
+                {
+                  "type": "heading",
+                  "heading": "Weather"
+                },
+                {
+                  "show_current": false,
+                  "show_forecast": true,
+                  "type": "weather-forecast",
+                  "entity": "weather.forecast_home",
+                  "forecast_type": "daily",
+                  "round_temperature": true,
+                  "grid_options": {
+                    "columns": 12,
+                    "rows": 2
+                  }
+                }
+              ]
+            },
+            {
+              "cards": [
+                {
+                  "type": "heading",
+                  "heading": "Bin Collection"
+                },
+                {
+                  "type": "tile",
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "binary_sensor.bin_recycling_next",
+                      "state": "on"
+                    }
+                  ],
+                  "entity": "binary_sensor.bin_recycling_next",
+                  "name": "Recycling",
+                  "icon": "mdi:recycle",
+                  "color": "green",
+                  "hide_state": true,
+                  "vertical": true,
+                  "features_position": "bottom",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 2
+                  }
+                },
+                {
+                  "type": "tile",
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "binary_sensor.bin_waste_next",
+                      "state": "on"
+                    }
+                  ],
+                  "entity": "binary_sensor.bin_waste_next",
+                  "name": "Waste",
+                  "icon": "mdi:trash-can",
+                  "color": "grey",
+                  "hide_state": true,
+                  "vertical": true,
+                  "features_position": "bottom",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 2
+                  }
+                },
+                {
+                  "type": "tile",
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "binary_sensor.bin_compost_next",
+                      "state": "on"
+                    }
+                  ],
+                  "entity": "binary_sensor.bin_compost_next",
+                  "name": "Compost",
+                  "icon": "mdi:compost",
+                  "color": "brown",
+                  "hide_state": true,
+                  "vertical": true,
+                  "features_position": "bottom",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 2
+                  }
+                }
+              ],
+              "visibility": [
+                {
+                  "condition": "state",
+                  "entity": "binary_sensor.bin_collection_soon",
+                  "state": "on"
+                }
+              ]
+            },
+            {
+              "cards": [
+                {
+                  "type": "heading",
+                  "heading": "Upcoming"
+                },
+                {
+                  "initial_view": "listWeek",
+                  "type": "calendar",
+                  "entities": [
+                    "calendar.family"
+                  ],
+                  "grid_options": {
+                    "columns": 12,
+                    "rows": 5
+                  }
+                }
+              ]
+            },
+            {
+              "cards": [
+                {
+                  "type": "heading",
+                  "heading": "House Status"
+                },
+                {
+                  "type": "entities",
+                  "entities": [
+                    {
+                      "entity": "sensor.hall_sensor_temperature_temperature",
+                      "name": "Temp"
+                    },
+                    {
+                      "entity": "person.user_1"
+                    },
+                    {
+                      "entity": "person.user_2"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "cards": [
+                {
+                  "type": "heading",
+                  "heading": "Quick Actions"
+                },
+                {
+                  "type": "tile",
+                  "entity": "script.dashboard_night_mode",
+                  "name": "Night Mode",
+                  "icon": "mdi:weather-night"
+                },
+                {
+                  "type": "tile",
+                  "entity": "script.dashboard_all_off",
+                  "name": "All Off",
+                  "icon": "mdi:power-off"
+                },
+                {
+                  "type": "tile",
+                  "entity": "scene.living_room_scene_cozy",
+                  "name": "Cozy Scene",
+                  "icon": "mdi:sofa"
+                },
+                {
+                  "type": "tile",
+                  "entity": "script.dashboard_away_mode",
+                  "name": "Away Mode",
+                  "icon": "mdi:home-export-outline"
+                }
+              ]
+            },
+            {
+              "visibility": [
+                {
+                  "condition": "state",
+                  "entity": "media_player.unnamed_room_2",
+                  "state_not": "unavailable"
+                }
+              ],
+              "cards": [
+                {
+                  "type": "heading",
+                  "heading": "Now Playing"
+                },
+                {
+                  "type": "media-control",
+                  "entity": "media_player.unnamed_room_2"
+                }
+              ]
+            },
+            {
+              "visibility": [
+                {
+                  "condition": "numeric_state",
+                  "entity": "counter.unread_notifications",
+                  "above": 0
+                }
+              ],
+              "cards": [
+                {
+                  "type": "heading",
+                  "heading": "Notifications"
+                },
+                {
+                  "type": "entities",
+                  "entities": [
+                    {
+                      "entity": "input_text.notification_slot_1"
+                    },
+                    {
+                      "entity": "input_text.notification_slot_2"
+                    },
+                    {
+                      "entity": "input_text.notification_slot_3"
+                    },
+                    {
+                      "entity": "input_text.notification_slot_4"
+                    },
+                    {
+                      "entity": "input_text.notification_slot_5"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "",
+              "cards": [
+                {
+                  "type": "custom:navbar-card",
+                  "routes": [
+                    {
+                      "icon": "mdi:home",
+                      "url": "/dashboard-2026/home"
+                    },
+                    {
+                      "icon": "mdi:sofa",
+                      "url": "/dashboard-2026/living-room"
+                    },
+                    {
+                      "icon": "mdi:silverware-fork-knife",
+                      "url": "/dashboard-2026/kitchen"
+                    },
+                    {
+                      "icon": "mdi:bed",
+                      "url": "/dashboard-2026/bedroom"
+                    },
+                    {
+                      "icon": "mdi:desk",
+                      "url": "/dashboard-2026/office"
+                    },
+                    {
+                      "icon": "mdi:baby-carriage",
+                      "url": "/dashboard-2026/nursery"
+                    },
+                    {
+                      "icon": "mdi:door",
+                      "url": "/dashboard-2026/hall"
+                    },
+                    {
+                      "icon": "mdi:stairs",
+                      "url": "/dashboard-2026/landing"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "cards": [
+                {
+                  "type": "heading",
+                  "heading": "Floor Lights"
+                },
+                {
+                  "type": "tile",
+                  "entity": "script.downstairs_off",
+                  "name": "Downstairs Off",
+                  "icon": "mdi:home-floor-0",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "scene.hall_and_upstairs_lights_on",
+                  "name": "Upstairs On",
+                  "icon": "mdi:home-floor-1",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "scene.hall_and_upstairs_lights_off",
+                  "name": "Upstairs Off",
+                  "icon": "mdi:home-floor-1",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Living Room",
+          "path": "living-room",
+          "subview": true,
+          "type": "sections",
+          "max_columns": 2,
+          "sections": [
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:sofa",
+                  "heading_style": "title",
+                  "heading": "Living Room",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "light.living_room_z2m",
+                      "show_state": true,
+                      "show_icon": true,
+                      "color": "accent",
+                      "name": "Lights"
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "sensor.living_room_heat_temp_temperature",
+                      "show_state": true,
+                      "show_icon": true
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "input_number.living_room_helper_comfort_temperature",
+                      "show_state": true,
+                      "show_icon": true
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "binary_sensor.living_room_motion_group_motion",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:motion-sensor"
+                    }
+                  ]
+                }
+              ],
+              "column_span": 2
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:lightning-bolt",
+                  "heading_style": "title",
+                  "heading": "Quick Actions"
+                },
+                {
+                  "type": "tile",
+                  "entity": "scene.living_room_scene_cozy",
+                  "name": "Cozy Scene",
+                  "tap_action": {
+                    "action": "toggle"
+                  },
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:ceiling-light",
+                  "heading_style": "title",
+                  "heading": "Lights"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.living_room_z2m",
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "hide_state": false,
+                  "features": [
+                    {
+                      "type": "light-brightness"
+                    }
+                  ],
+                  "features_position": "inline",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  },
+                  "name": "All"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.living_room_light_lamp",
+                  "name": "Lamp"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.living_room_light_1",
+                  "name": "Light 1"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.living_room_light_2",
+                  "name": "Light 2"
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:thermometer",
+                  "heading_style": "title",
+                  "heading": "Climate",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "sensor.living_room_heat_temp_temperature",
+                      "show_state": true,
+                      "show_icon": true
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "input_number.living_room_helper_comfort_temperature",
+                  "name": "Target",
+                  "hide_state": true,
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "features": [
+                    {
+                      "type": "numeric-input",
+                      "style": "buttons"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  },
+                  "features_position": "inline"
+                },
+                {
+                  "type": "tile",
+                  "entity": "climate.living_room_heat_trv_1",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 1
+                  },
+                  "name": "TRV",
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "climate.living_room_heat_trv_1",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "sensor.living_room_heat_temp_temperature",
+                  "name": "Temperature",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 2
+                  },
+                  "features": [
+                    {
+                      "type": "trend-chart"
+                    }
+                  ],
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "sensor.living_room_heat_temp_temperature",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:motion-sensor",
+                  "heading_style": "title",
+                  "heading": "Motion",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "binary_sensor.living_room_motion_group_motion",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:motion-sensor"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "binary_sensor.living_room_motion_group_motion",
+                  "name": "Motion",
+                  "show_entity_picture": false,
+                  "hide_state": false,
+                  "state_content": [
+                    "state",
+                    "last-changed"
+                  ],
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "binary_sensor.living_room_motion_group_motion",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:robot",
+                  "heading_style": "title",
+                  "heading": "Automations"
+                },
+                {
+                  "type": "tile",
+                  "entity": "automation.living_room_automation_living_room_heating_v4",
+                  "tap_action": {
+                    "action": "toggle"
+                  },
+                  "hold_action": {
+                    "action": "more-info"
+                  },
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  },
+                  "name": "Heating"
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:dots-horizontal",
+                  "heading_style": "title",
+                  "heading": "Extras"
+                },
+                {
+                  "type": "tile",
+                  "entity": "cover.living_room_curtain_2",
+                  "name": "Curtain",
+                  "vertical": false,
+                  "features_position": "inline",
+                  "features": [
+                    {
+                      "type": "cover-position"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "media_player.living_room_tv_2",
+                  "name": "TV"
+                },
+                {
+                  "type": "tile",
+                  "entity": "media_player.living_room_device_tv",
+                  "name": "Device TV",
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "media_player.living_room_device_tv",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "column_span": 2,
+              "cards": [
+                {
+                  "type": "markdown",
+                  "content": " ",
+                  "card_mod": {
+                    "style": "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+                  }
+                }
+              ]
+            },
+            {
+              "title": "",
+              "cards": [
+                {
+                  "type": "custom:navbar-card",
+                  "routes": [
+                    {
+                      "icon": "mdi:home",
+                      "url": "/dashboard-2026/home"
+                    },
+                    {
+                      "icon": "mdi:sofa",
+                      "url": "/dashboard-2026/living-room"
+                    },
+                    {
+                      "icon": "mdi:silverware-fork-knife",
+                      "url": "/dashboard-2026/kitchen"
+                    },
+                    {
+                      "icon": "mdi:bed",
+                      "url": "/dashboard-2026/bedroom"
+                    },
+                    {
+                      "icon": "mdi:desk",
+                      "url": "/dashboard-2026/office"
+                    },
+                    {
+                      "icon": "mdi:baby-carriage",
+                      "url": "/dashboard-2026/nursery"
+                    },
+                    {
+                      "icon": "mdi:door",
+                      "url": "/dashboard-2026/hall"
+                    },
+                    {
+                      "icon": "mdi:stairs",
+                      "url": "/dashboard-2026/landing"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Kitchen",
+          "path": "kitchen",
+          "subview": true,
+          "type": "sections",
+          "max_columns": 2,
+          "sections": [
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:silverware-fork-knife",
+                  "heading": "Kitchen",
+                  "heading_style": "title",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "show_state": true,
+                      "show_icon": true,
+                      "entity": "light.kitchen",
+                      "color": "accent"
+                    },
+                    {
+                      "type": "entity",
+                      "show_state": true,
+                      "show_icon": true,
+                      "entity": "sensor.boiler_temperature"
+                    },
+                    {
+                      "type": "entity",
+                      "show_state": true,
+                      "show_icon": true,
+                      "entity": "climate.boiler",
+                      "tap_action": {
+                        "action": "more-info"
+                      }
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "binary_sensor.kitchen_helper_kitchen_motion_group",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:motion-sensor"
+                    }
+                  ]
+                }
+              ],
+              "column_span": 2
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:ceiling-light",
+                  "heading_style": "title",
+                  "heading": "Lights"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.kitchen",
+                  "name": "All",
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "features": [
+                    {
+                      "type": "light-brightness"
+                    }
+                  ],
+                  "features_position": "inline",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.kitchen_lights",
+                  "name": "Group",
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.kitchen_center_light_1",
+                  "name": "Center",
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.kitchen_light_cooking_1",
+                  "name": "Cooking",
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.kitchen_light_walk_in_1",
+                  "name": "Walk-in",
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.strip_light_strip_light_1",
+                  "name": "Strip",
+                  "icon": "mdi:led-strip",
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:thermometer",
+                  "heading_style": "title",
+                  "heading": "Climate",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "sensor.boiler_temperature",
+                      "show_state": true,
+                      "show_icon": true
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "input_number.temp",
+                  "name": "Target",
+                  "hide_state": true,
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "features": [
+                    {
+                      "type": "numeric-input",
+                      "style": "buttons"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  },
+                  "features_position": "inline"
+                },
+                {
+                  "type": "tile",
+                  "entity": "climate.boiler",
+                  "state_content": [
+                    "state",
+                    "initial",
+                    "last-changed"
+                  ],
+                  "features": [
+                    {
+                      "type": "target-temperature"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 2
+                  },
+                  "features_position": "bottom"
+                },
+                {
+                  "type": "tile",
+                  "entity": "climate.kitchen_heat_trv_1",
+                  "name": "TRV 1",
+                  "state_content": "temperature",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 1
+                  },
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "climate.kitchen_heat_trv_1",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "climate.kitchen_heat_trv_2",
+                  "name": "TRV 2",
+                  "state_content": "temperature",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 1
+                  },
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "climate.kitchen_heat_trv_2",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "sensor.boiler_temperature",
+                  "name": "Temperature",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 2
+                  },
+                  "features": [
+                    {
+                      "type": "trend-chart"
+                    }
+                  ],
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "sensor.boiler_temperature",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:motion-sensor",
+                  "heading_style": "title",
+                  "heading": "Motion",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "binary_sensor.kitchen_helper_kitchen_motion_group",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:motion-sensor"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "binary_sensor.kitchen_helper_kitchen_motion_group",
+                  "name": "Motion",
+                  "show_entity_picture": false,
+                  "hide_state": false,
+                  "state_content": [
+                    "state",
+                    "last-changed"
+                  ],
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "binary_sensor.kitchen_helper_kitchen_motion_group",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:robot",
+                  "heading_style": "title",
+                  "heading": "Automations"
+                },
+                {
+                  "type": "tile",
+                  "entity": "automation.kitchen_automation_v4_heating",
+                  "name": "Heating",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:dots-horizontal",
+                  "heading_style": "title",
+                  "heading": "Extras"
+                },
+                {
+                  "type": "tile",
+                  "entity": "cover.kitchen_blind",
+                  "name": "Blind",
+                  "vertical": false,
+                  "features_position": "inline",
+                  "features": [
+                    {
+                      "type": "cover-position"
+                    },
+                    {
+                      "type": "cover-open-close"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "input_boolean.kitchen_blinds_manual_override",
+                  "name": "Manual Override",
+                  "vertical": false,
+                  "features": [
+                    {
+                      "type": "toggle"
+                    }
+                  ],
+                  "features_position": "bottom"
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "column_span": 2,
+              "cards": [
+                {
+                  "type": "markdown",
+                  "content": " ",
+                  "card_mod": {
+                    "style": "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+                  }
+                }
+              ]
+            },
+            {
+              "title": "",
+              "cards": [
+                {
+                  "type": "custom:navbar-card",
+                  "routes": [
+                    {
+                      "icon": "mdi:home",
+                      "url": "/dashboard-2026/home"
+                    },
+                    {
+                      "icon": "mdi:sofa",
+                      "url": "/dashboard-2026/living-room"
+                    },
+                    {
+                      "icon": "mdi:silverware-fork-knife",
+                      "url": "/dashboard-2026/kitchen"
+                    },
+                    {
+                      "icon": "mdi:bed",
+                      "url": "/dashboard-2026/bedroom"
+                    },
+                    {
+                      "icon": "mdi:desk",
+                      "url": "/dashboard-2026/office"
+                    },
+                    {
+                      "icon": "mdi:baby-carriage",
+                      "url": "/dashboard-2026/nursery"
+                    },
+                    {
+                      "icon": "mdi:door",
+                      "url": "/dashboard-2026/hall"
+                    },
+                    {
+                      "icon": "mdi:stairs",
+                      "url": "/dashboard-2026/landing"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Bedroom",
+          "path": "bedroom",
+          "subview": true,
+          "type": "sections",
+          "max_columns": 2,
+          "sections": [
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:bed",
+                  "heading_style": "title",
+                  "heading": "Bedroom",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "light.bedroom_z2m",
+                      "show_state": true,
+                      "show_icon": true,
+                      "color": "accent",
+                      "name": "Lights"
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "input_number.bedroom_helper_comfort_temperature",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:sun-thermometer"
+                    }
+                  ]
+                }
+              ],
+              "column_span": 2
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:lightning-bolt",
+                  "heading_style": "title",
+                  "heading": "Quick Actions"
+                },
+                {
+                  "type": "tile",
+                  "entity": "input_button.boost_fan",
+                  "name": "Boost",
+                  "tap_action": {
+                    "action": "call-service",
+                    "service": "input_button.press",
+                    "target": {
+                      "entity_id": "input_button.boost_fan"
+                    }
+                  },
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:ceiling-light",
+                  "heading_style": "title",
+                  "heading": "Lights"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.bedroom_z2m",
+                  "name": "All",
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "features": [
+                    {
+                      "type": "light-brightness"
+                    }
+                  ],
+                  "features_position": "inline",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.bedroom_bedside_light_1",
+                  "name": "User 1"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.bedroom_bedside_light_2",
+                  "name": "User 2"
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:thermometer",
+                  "heading_style": "title",
+                  "heading": "Climate",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "sensor.bedroom_heat_temp_sens_temperature",
+                      "show_state": true,
+                      "show_icon": true
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "input_number.bedroom_helper_comfort_temperature",
+                  "name": "Target",
+                  "hide_state": true,
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "features": [
+                    {
+                      "type": "numeric-input",
+                      "style": "buttons"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  },
+                  "features_position": "inline"
+                },
+                {
+                  "type": "tile",
+                  "entity": "climate.bedroom_trv_big_window",
+                  "name": "TRV 1",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 1
+                  },
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "climate.bedroom_trv_big_window",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "climate.bedroom_trv_small_window",
+                  "name": "TRV 2",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 1
+                  },
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "climate.bedroom_trv_small_window",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "sensor.bedroom_heat_temp_sens_temperature",
+                  "name": "Temperature",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 2
+                  },
+                  "features": [
+                    {
+                      "type": "trend-chart"
+                    }
+                  ],
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "sensor.bedroom_heat_temp_sens_temperature",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "fan.fan",
+                  "name": "Fan",
+                  "vertical": false,
+                  "features": [
+                    {
+                      "type": "fan-speed"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  },
+                  "features_position": "inline"
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:motion-sensor",
+                  "heading_style": "title",
+                  "heading": "Motion",
+                  "badges": []
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:robot",
+                  "heading_style": "title",
+                  "heading": "Automations"
+                },
+                {
+                  "type": "tile",
+                  "entity": "automation.bedroom_automation_heating",
+                  "name": "Heating",
+                  "tap_action": {
+                    "action": "toggle"
+                  },
+                  "hold_action": {
+                    "action": "more-info"
+                  },
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:dots-horizontal",
+                  "heading_style": "title",
+                  "heading": "Extras"
+                },
+                {
+                  "type": "tile",
+                  "entity": "cover.bedroom_blinds_blinds_small_window",
+                  "name": "Small Window",
+                  "vertical": false,
+                  "features_position": "inline",
+                  "features": [
+                    {
+                      "type": "cover-position"
+                    },
+                    {
+                      "type": "cover-open-close"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "cover.bedroom_blinds_blinds_main_window",
+                  "name": "Main Window",
+                  "vertical": false,
+                  "features_position": "inline",
+                  "features": [
+                    {
+                      "type": "cover-position"
+                    },
+                    {
+                      "type": "cover-open-close"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "cover.bedroom_blind_group_blinds",
+                  "name": "All Blinds",
+                  "vertical": false,
+                  "features_position": "inline",
+                  "features": [
+                    {
+                      "type": "cover-position"
+                    },
+                    {
+                      "type": "cover-open-close"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.office_light_play_1",
+                  "name": "Play 1",
+                  "vertical": false,
+                  "features": [
+                    {
+                      "type": "light-brightness"
+                    }
+                  ],
+                  "features_position": "inline",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.office_light_play_2",
+                  "name": "Play 2",
+                  "vertical": false,
+                  "features": [
+                    {
+                      "type": "light-brightness"
+                    }
+                  ],
+                  "features_position": "inline",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.play",
+                  "name": "Play Group",
+                  "vertical": false,
+                  "features": [
+                    {
+                      "type": "light-brightness"
+                    }
+                  ],
+                  "features_position": "inline",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "column_span": 2,
+              "cards": [
+                {
+                  "type": "markdown",
+                  "content": " ",
+                  "card_mod": {
+                    "style": "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+                  }
+                }
+              ]
+            },
+            {
+              "title": "",
+              "cards": [
+                {
+                  "type": "custom:navbar-card",
+                  "routes": [
+                    {
+                      "icon": "mdi:home",
+                      "url": "/dashboard-2026/home"
+                    },
+                    {
+                      "icon": "mdi:sofa",
+                      "url": "/dashboard-2026/living-room"
+                    },
+                    {
+                      "icon": "mdi:silverware-fork-knife",
+                      "url": "/dashboard-2026/kitchen"
+                    },
+                    {
+                      "icon": "mdi:bed",
+                      "url": "/dashboard-2026/bedroom"
+                    },
+                    {
+                      "icon": "mdi:desk",
+                      "url": "/dashboard-2026/office"
+                    },
+                    {
+                      "icon": "mdi:baby-carriage",
+                      "url": "/dashboard-2026/nursery"
+                    },
+                    {
+                      "icon": "mdi:door",
+                      "url": "/dashboard-2026/hall"
+                    },
+                    {
+                      "icon": "mdi:stairs",
+                      "url": "/dashboard-2026/landing"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Office",
+          "path": "office",
+          "subview": true,
+          "type": "sections",
+          "max_columns": 2,
+          "sections": [
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:desk",
+                  "heading_style": "title",
+                  "heading": "Office",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "light.office",
+                      "show_state": true,
+                      "show_icon": true,
+                      "color": "accent"
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "sensor.office_temp_sensor_temperature",
+                      "show_state": true,
+                      "show_icon": true
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "input_number.office_helper_officetemperature",
+                      "show_state": true,
+                      "show_icon": true
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "binary_sensor.office_helper_motion_group",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:motion-sensor"
+                    }
+                  ]
+                }
+              ],
+              "column_span": 2
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:ceiling-light",
+                  "heading_style": "title",
+                  "heading": "Lights"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.office",
+                  "name": "All",
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "features": [
+                    {
+                      "type": "light-brightness"
+                    }
+                  ],
+                  "features_position": "inline",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.office_light_lamp",
+                  "name": "Lamp",
+                  "icon": "mdi:lamp"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.office_light_spot_1_above_desk",
+                  "name": "Desk"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.office_light_spot_2",
+                  "name": "Spot"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.office_light_strip_lights",
+                  "name": "Strip"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.office_light_signe_light",
+                  "name": "Signe"
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:thermometer",
+                  "heading_style": "title",
+                  "heading": "Climate",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "sensor.office_temp_sensor_temperature",
+                      "show_state": true,
+                      "show_icon": true
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "input_number.office_helper_officetemperature",
+                  "name": "Target",
+                  "hide_state": true,
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "features": [
+                    {
+                      "type": "numeric-input",
+                      "style": "buttons"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  },
+                  "features_position": "inline"
+                },
+                {
+                  "type": "tile",
+                  "entity": "climate.office_heat_trv_2024",
+                  "name": "TRV",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 1
+                  },
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "climate.office_heat_trv_2024",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "sensor.office_temp_sensor_temperature",
+                  "name": "Temperature",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 2
+                  },
+                  "features": [
+                    {
+                      "type": "trend-chart"
+                    }
+                  ],
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "sensor.office_temp_sensor_temperature",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:motion-sensor",
+                  "heading_style": "title",
+                  "heading": "Motion",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "binary_sensor.office_helper_motion_group",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:motion-sensor"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "binary_sensor.office_helper_motion_group",
+                  "name": "Motion",
+                  "show_entity_picture": false,
+                  "hide_state": false,
+                  "state_content": [
+                    "state",
+                    "last-changed"
+                  ],
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "binary_sensor.office_helper_motion_group",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:robot",
+                  "heading_style": "title",
+                  "heading": "Automations"
+                },
+                {
+                  "type": "tile",
+                  "entity": "automation.office_automation_office_heating_v4",
+                  "name": "Heating",
+                  "tap_action": {
+                    "action": "toggle"
+                  },
+                  "hold_action": {
+                    "action": "more-info"
+                  },
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:dots-horizontal",
+                  "heading_style": "title",
+                  "heading": "Extras"
+                },
+                {
+                  "type": "tile",
+                  "entity": "cover.office_curtain_2",
+                  "name": "Curtain",
+                  "vertical": false,
+                  "features_position": "inline",
+                  "features": [
+                    {
+                      "type": "cover-open-close"
+                    },
+                    {
+                      "type": "cover-position"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "column_span": 2,
+              "cards": [
+                {
+                  "type": "markdown",
+                  "content": " ",
+                  "card_mod": {
+                    "style": "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+                  }
+                }
+              ]
+            },
+            {
+              "title": "",
+              "cards": [
+                {
+                  "type": "custom:navbar-card",
+                  "routes": [
+                    {
+                      "icon": "mdi:home",
+                      "url": "/dashboard-2026/home"
+                    },
+                    {
+                      "icon": "mdi:sofa",
+                      "url": "/dashboard-2026/living-room"
+                    },
+                    {
+                      "icon": "mdi:silverware-fork-knife",
+                      "url": "/dashboard-2026/kitchen"
+                    },
+                    {
+                      "icon": "mdi:bed",
+                      "url": "/dashboard-2026/bedroom"
+                    },
+                    {
+                      "icon": "mdi:desk",
+                      "url": "/dashboard-2026/office"
+                    },
+                    {
+                      "icon": "mdi:baby-carriage",
+                      "url": "/dashboard-2026/nursery"
+                    },
+                    {
+                      "icon": "mdi:door",
+                      "url": "/dashboard-2026/hall"
+                    },
+                    {
+                      "icon": "mdi:stairs",
+                      "url": "/dashboard-2026/landing"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Nursery",
+          "path": "nursery",
+          "subview": true,
+          "type": "sections",
+          "max_columns": 2,
+          "sections": [
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:baby-carriage",
+                  "heading_style": "title",
+                  "heading": "Nursery",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "light.office_light_lamp_small",
+                      "show_state": true,
+                      "show_icon": true,
+                      "color": "accent"
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "binary_sensor.g5_turret_ultra_motion",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:motion-sensor"
+                    }
+                  ]
+                }
+              ],
+              "column_span": 2
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:motion-sensor",
+                  "heading_style": "title",
+                  "heading": "Motion",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "binary_sensor.g5_turret_ultra_motion",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:motion-sensor"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "binary_sensor.g5_turret_ultra_motion",
+                  "name": "Camera Motion",
+                  "show_entity_picture": false,
+                  "hide_state": false,
+                  "state_content": [
+                    "state",
+                    "last-changed"
+                  ],
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "binary_sensor.g5_turret_ultra_motion",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:ceiling-light",
+                  "heading_style": "title",
+                  "heading": "Lights"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.office_light_lamp_small",
+                  "name": "Nursery Light"
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:dots-horizontal",
+                  "heading_style": "title",
+                  "heading": "Extras"
+                },
+                {
+                  "type": "tile",
+                  "entity": "media_player.g4_instant_speaker_2",
+                  "name": "Nursery Speaker"
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "column_span": 2,
+              "cards": [
+                {
+                  "type": "markdown",
+                  "content": " ",
+                  "card_mod": {
+                    "style": "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+                  }
+                }
+              ]
+            },
+            {
+              "title": "",
+              "cards": [
+                {
+                  "type": "custom:navbar-card",
+                  "routes": [
+                    {
+                      "icon": "mdi:home",
+                      "url": "/dashboard-2026/home"
+                    },
+                    {
+                      "icon": "mdi:sofa",
+                      "url": "/dashboard-2026/living-room"
+                    },
+                    {
+                      "icon": "mdi:silverware-fork-knife",
+                      "url": "/dashboard-2026/kitchen"
+                    },
+                    {
+                      "icon": "mdi:bed",
+                      "url": "/dashboard-2026/bedroom"
+                    },
+                    {
+                      "icon": "mdi:desk",
+                      "url": "/dashboard-2026/office"
+                    },
+                    {
+                      "icon": "mdi:baby-carriage",
+                      "url": "/dashboard-2026/nursery"
+                    },
+                    {
+                      "icon": "mdi:door",
+                      "url": "/dashboard-2026/hall"
+                    },
+                    {
+                      "icon": "mdi:stairs",
+                      "url": "/dashboard-2026/landing"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Hall",
+          "path": "hall",
+          "subview": true,
+          "type": "sections",
+          "max_columns": 2,
+          "sections": [
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:door",
+                  "heading_style": "title",
+                  "heading": "Hall",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "light.hall",
+                      "show_state": true,
+                      "show_icon": true,
+                      "color": "accent"
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "climate.hall_trv_trv",
+                      "show_state": true,
+                      "show_icon": true
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "binary_sensor.hall_motion_group_1",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:motion-sensor"
+                    }
+                  ]
+                }
+              ],
+              "column_span": 2
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:ceiling-light",
+                  "heading_style": "title",
+                  "heading": "Lights"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.hall",
+                  "name": "All",
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "features": [
+                    {
+                      "type": "light-brightness"
+                    }
+                  ],
+                  "features_position": "inline",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.hall_light_1",
+                  "name": "Light 1"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.hall_light_2",
+                  "name": "Light 2"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.hall_light_3",
+                  "name": "Light 3"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.hall_light_hue_lamp",
+                  "name": "Lamp"
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:thermometer",
+                  "heading_style": "title",
+                  "heading": "Climate",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "climate.hall_trv_trv",
+                      "show_state": true,
+                      "show_icon": true
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "input_number.hall_helper_comfort_temperature",
+                  "name": "Target",
+                  "hide_state": true,
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "features": [
+                    {
+                      "type": "numeric-input",
+                      "style": "buttons"
+                    }
+                  ],
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  },
+                  "features_position": "inline"
+                },
+                {
+                  "type": "tile",
+                  "entity": "climate.hall_trv_trv",
+                  "name": "TRV",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 1
+                  },
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "climate.hall_trv_trv",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:motion-sensor",
+                  "heading_style": "title",
+                  "heading": "Motion",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "binary_sensor.hall_motion_group_1",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:motion-sensor"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "binary_sensor.hall_motion_group_1",
+                  "name": "Motion",
+                  "show_entity_picture": false,
+                  "hide_state": false,
+                  "state_content": [
+                    "state",
+                    "last-changed"
+                  ],
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "binary_sensor.hall_motion_group_1",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:robot",
+                  "heading_style": "title",
+                  "heading": "Automations"
+                },
+                {
+                  "type": "tile",
+                  "entity": "automation.hall_automation_sensor_light",
+                  "name": "Sensor Light",
+                  "tap_action": {
+                    "action": "toggle"
+                  },
+                  "hold_action": {
+                    "action": "more-info"
+                  },
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:dots-horizontal",
+                  "heading_style": "title",
+                  "heading": "Extras"
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "column_span": 2,
+              "cards": [
+                {
+                  "type": "markdown",
+                  "content": " ",
+                  "card_mod": {
+                    "style": "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+                  }
+                }
+              ]
+            },
+            {
+              "title": "",
+              "cards": [
+                {
+                  "type": "custom:navbar-card",
+                  "routes": [
+                    {
+                      "icon": "mdi:home",
+                      "url": "/dashboard-2026/home"
+                    },
+                    {
+                      "icon": "mdi:sofa",
+                      "url": "/dashboard-2026/living-room"
+                    },
+                    {
+                      "icon": "mdi:silverware-fork-knife",
+                      "url": "/dashboard-2026/kitchen"
+                    },
+                    {
+                      "icon": "mdi:bed",
+                      "url": "/dashboard-2026/bedroom"
+                    },
+                    {
+                      "icon": "mdi:desk",
+                      "url": "/dashboard-2026/office"
+                    },
+                    {
+                      "icon": "mdi:baby-carriage",
+                      "url": "/dashboard-2026/nursery"
+                    },
+                    {
+                      "icon": "mdi:door",
+                      "url": "/dashboard-2026/hall"
+                    },
+                    {
+                      "icon": "mdi:stairs",
+                      "url": "/dashboard-2026/landing"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Landing",
+          "path": "landing",
+          "subview": true,
+          "type": "sections",
+          "max_columns": 2,
+          "sections": [
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:stairs",
+                  "heading_style": "title",
+                  "heading": "Landing",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "light.landing",
+                      "show_state": true,
+                      "show_icon": true,
+                      "color": "accent"
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "climate.landing_trv_trv",
+                      "show_state": true,
+                      "show_icon": true
+                    },
+                    {
+                      "type": "entity",
+                      "entity": "binary_sensor.landing_helper_motion_group",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:motion-sensor"
+                    }
+                  ]
+                }
+              ],
+              "column_span": 2
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:ceiling-light",
+                  "heading_style": "title",
+                  "heading": "Lights"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.landing",
+                  "name": "All",
+                  "vertical": false,
+                  "show_entity_picture": false,
+                  "features": [
+                    {
+                      "type": "light-brightness"
+                    }
+                  ],
+                  "features_position": "inline",
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.landing_hue_lamp",
+                  "name": "Lamp"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.landing_light_top_of_landing_lamp",
+                  "name": "Top"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.landing_light_stairs_light_1",
+                  "name": "Stairs"
+                },
+                {
+                  "type": "tile",
+                  "entity": "light.landing_hue_1",
+                  "name": "Hue 1"
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:thermometer",
+                  "heading_style": "title",
+                  "heading": "Climate",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "climate.landing_trv_trv",
+                      "show_state": true,
+                      "show_icon": true
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "climate.landing_trv_trv",
+                  "name": "TRV",
+                  "grid_options": {
+                    "columns": 3,
+                    "rows": 1
+                  },
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "climate.landing_trv_trv",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:motion-sensor",
+                  "heading_style": "title",
+                  "heading": "Motion",
+                  "badges": [
+                    {
+                      "type": "entity",
+                      "entity": "binary_sensor.landing_helper_motion_group",
+                      "show_state": true,
+                      "show_icon": true,
+                      "icon": "mdi:motion-sensor"
+                    }
+                  ]
+                },
+                {
+                  "type": "tile",
+                  "entity": "binary_sensor.landing_helper_motion_group",
+                  "name": "Motion",
+                  "show_entity_picture": false,
+                  "hide_state": false,
+                  "state_content": [
+                    "state",
+                    "last-changed"
+                  ],
+                  "visibility": [
+                    {
+                      "condition": "state",
+                      "entity": "binary_sensor.landing_helper_motion_group",
+                      "state_not": "unavailable"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:robot",
+                  "heading_style": "title",
+                  "heading": "Automations"
+                },
+                {
+                  "type": "tile",
+                  "entity": "automation.landing_motion_light",
+                  "name": "Motion Light",
+                  "tap_action": {
+                    "action": "toggle"
+                  },
+                  "hold_action": {
+                    "action": "more-info"
+                  },
+                  "grid_options": {
+                    "columns": 6,
+                    "rows": 1
+                  }
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "cards": [
+                {
+                  "type": "heading",
+                  "icon": "mdi:dots-horizontal",
+                  "heading_style": "title",
+                  "heading": "Extras"
+                }
+              ]
+            },
+            {
+              "type": "grid",
+              "column_span": 2,
+              "cards": [
+                {
+                  "type": "markdown",
+                  "content": " ",
+                  "card_mod": {
+                    "style": "ha-card { background: none !important; box-shadow: none !important; border: none !important; }"
+                  }
+                }
+              ]
+            },
+            {
+              "title": "",
+              "cards": [
+                {
+                  "type": "custom:navbar-card",
+                  "routes": [
+                    {
+                      "icon": "mdi:home",
+                      "url": "/dashboard-2026/home"
+                    },
+                    {
+                      "icon": "mdi:sofa",
+                      "url": "/dashboard-2026/living-room"
+                    },
+                    {
+                      "icon": "mdi:silverware-fork-knife",
+                      "url": "/dashboard-2026/kitchen"
+                    },
+                    {
+                      "icon": "mdi:bed",
+                      "url": "/dashboard-2026/bedroom"
+                    },
+                    {
+                      "icon": "mdi:desk",
+                      "url": "/dashboard-2026/office"
+                    },
+                    {
+                      "icon": "mdi:baby-carriage",
+                      "url": "/dashboard-2026/nursery"
+                    },
+                    {
+                      "icon": "mdi:door",
+                      "url": "/dashboard-2026/hall"
+                    },
+                    {
+                      "icon": "mdi:stairs",
+                      "url": "/dashboard-2026/landing"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
