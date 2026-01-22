@@ -4,15 +4,6 @@ extract_manual_actions.py - Query Home Assistant for manual user actions
 
 Analyzes the logbook to find user-triggered actions and suggests automation candidates
 based on patterns in timing and frequency.
-
-Configuration:
-    Set your Home Assistant URL via one of these methods (in priority order):
-    1. Command line: --base-url http://your-ha-instance:8123
-    2. Environment variable: HOMEASSISTANT_URL
-
-    Set your authentication token via one of these methods:
-    1. Environment variable: HA_TOKEN
-    2. File: ~/.ha_token (containing just the token)
 """
 
 import argparse
@@ -24,18 +15,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
-
-
-def get_ha_url(cli_arg=None):
-    """Get Home Assistant URL from CLI argument or environment variable."""
-    if cli_arg:
-        return cli_arg
-
-    url = os.environ.get("HOMEASSISTANT_URL")
-    if url:
-        return url
-
-    return None
 
 
 def get_ha_token():
@@ -100,7 +79,7 @@ def extract_action_from_entry(entry):
     state = entry.get("state", "")
 
     # Handle different entity types
-    entity_id = entry.get("entity_id", "")
+    entity_id = str(entry.get("entity_id") or "")
     domain = entity_id.split(".")[0] if "." in entity_id else ""
 
     if domain == "scene":
@@ -123,6 +102,10 @@ def extract_action_from_entry(entry):
 def parse_timestamp(ts_str):
     """Parse ISO timestamp from Home Assistant."""
     if not ts_str:
+        return None
+
+    # Handle non-string inputs (e.g., integer timestamps)
+    if not isinstance(ts_str, str):
         return None
 
     # Handle various timestamp formats
@@ -297,18 +280,7 @@ def print_automation_candidates(candidates):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Extract manual user actions from Home Assistant logbook and suggest automation candidates.",
-        epilog="""
-Configuration:
-  Home Assistant URL must be provided via --base-url or HOMEASSISTANT_URL env var.
-  Authentication token must be set via HA_TOKEN env var or ~/.ha_token file.
-
-Examples:
-  %(prog)s --base-url http://homeassistant.local:8123
-  %(prog)s --base-url http://192.168.1.100:8123 --days 14
-  HOMEASSISTANT_URL=http://ha.local:8123 %(prog)s --days 30
-        """,
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Extract manual user actions from Home Assistant logbook"
     )
     parser.add_argument(
         "--days",
@@ -318,8 +290,8 @@ Examples:
     )
     parser.add_argument(
         "--base-url",
-        help="Home Assistant base URL (e.g., http://homeassistant.local:8123). "
-             "Can also be set via HOMEASSISTANT_URL environment variable."
+        default="http://192.168.1.217:8123",
+        help="Home Assistant base URL (default: http://192.168.1.217:8123)"
     )
     parser.add_argument(
         "--min-occurrences",
@@ -335,18 +307,6 @@ Examples:
 
     args = parser.parse_args()
 
-    # Get base URL (required)
-    base_url = get_ha_url(args.base_url)
-    if not base_url:
-        print(
-            "Error: Home Assistant URL not provided.\n\n"
-            "Please specify the URL using one of these methods:\n"
-            "  1. Command line: --base-url http://your-ha-instance:8123\n"
-            "  2. Environment variable: export HOMEASSISTANT_URL=http://your-ha-instance:8123\n",
-            file=sys.stderr
-        )
-        return 1
-
     # Get token
     try:
         token = get_ha_token()
@@ -361,7 +321,7 @@ Examples:
     end_time = datetime.now()
     start_time = end_time - timedelta(days=args.days)
 
-    print(f"Querying Home Assistant at {base_url}")
+    print(f"Querying Home Assistant at {args.base_url}")
     print(f"Time range: {start_time.strftime('%Y-%m-%d')} to {end_time.strftime('%Y-%m-%d')}")
     print(f"Domains: {', '.join(domains)}")
     print("Fetching logbook entries...")
@@ -373,11 +333,11 @@ Examples:
 
     try:
         # Query logbook
-        entries = get_logbook_entries(base_url, token, start_time, end_time)
+        entries = get_logbook_entries(args.base_url, token, start_time, end_time)
         total_entries = len(entries)
 
         for entry in entries:
-            entity_id = entry.get("entity_id", "")
+            entity_id = str(entry.get("entity_id") or "")
 
             # Check if entity is in our target domains
             domain = entity_id.split(".")[0] if "." in entity_id else ""
@@ -400,7 +360,7 @@ Examples:
         print(f"Identified {manual_entries} manual actions across {len(actions_by_entity)} entities")
 
     except requests.exceptions.ConnectionError:
-        print(f"Error: Could not connect to Home Assistant at {base_url}", file=sys.stderr)
+        print(f"Error: Could not connect to Home Assistant at {args.base_url}", file=sys.stderr)
         return 1
     except requests.exceptions.HTTPError as e:
         print(f"Error: HTTP error from Home Assistant: {e}", file=sys.stderr)
