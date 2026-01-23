@@ -398,14 +398,11 @@ class TestParseTimestamp:
         result = parse_timestamp("not-a-timestamp")
         assert result is None
 
-    def test_returns_none_for_partial_timestamp(self):
-        """Should return None for partial timestamp."""
+    def test_parses_date_only_timestamp(self):
+        """Should parse date-only string in Python 3.11+."""
         result = parse_timestamp("2025-01-20")
-        # This should actually parse as a date, check behavior
         # datetime.fromisoformat handles date-only strings in Python 3.11+
-        # The function might return a datetime or None depending on version
-        # For this test, we accept either behavior
-        pass  # Skip assertion - implementation dependent
+        assert result is not None
 
 
 # =============================================================================

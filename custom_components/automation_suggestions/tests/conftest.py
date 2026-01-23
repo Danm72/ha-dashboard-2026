@@ -1,10 +1,8 @@
 """Root fixtures for automation_suggestions tests."""
 
 import pytest
-from unittest.mock import MagicMock
 
 from custom_components.automation_suggestions.const import (
-    DOMAIN,
     CONF_ANALYSIS_INTERVAL,
     CONF_LOOKBACK_DAYS,
     CONF_MIN_OCCURRENCES,

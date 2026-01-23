@@ -5,7 +5,6 @@ from unittest.mock import patch, AsyncMock
 
 from homeassistant.const import STATE_UNKNOWN
 
-from custom_components.automation_suggestions.const import DOMAIN
 
 
 class TestCountSensor:

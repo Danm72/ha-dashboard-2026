@@ -530,7 +530,7 @@ async def analyze_patterns_async(
     def get_history() -> dict[str, list[Any]]:
         """Get state history from recorder."""
         recorder = get_instance(hass)
-        with recorder.session_scope() as session:
+        with recorder.session_scope() as _session:
             return get_significant_states(
                 hass,
                 start_time,
@@ -564,7 +564,6 @@ async def analyze_patterns_async(
             # Check context for automation/script triggers
             if state.context:
                 # Try to extract context information
-                context_id = state.context.id
                 parent_id = state.context.parent_id
                 if parent_id:
                     # If there's a parent context, this was likely triggered by something

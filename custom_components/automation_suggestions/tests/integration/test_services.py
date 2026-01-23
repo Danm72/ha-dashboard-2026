@@ -1,9 +1,7 @@
 """Tests for service handlers."""
 
 import pytest
-from unittest.mock import AsyncMock, patch
 
-from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.automation_suggestions.const import DOMAIN
 

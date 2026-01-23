@@ -1,7 +1,7 @@
 """Tests for the data update coordinator."""
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 from datetime import timedelta
 
 from homeassistant.helpers.update_coordinator import UpdateFailed
