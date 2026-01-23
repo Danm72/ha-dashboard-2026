@@ -51,6 +51,33 @@ class Suggestion:
     occurrence_count: int
     last_occurrence: str
 
+    @property
+    def description(self) -> str:
+        """Return a human-readable description of the suggestion."""
+        action_display = self._format_action(self.action)
+        consistency_pct = int(self.consistency_score * 100)
+        return (
+            f"{action_display} {self.entity_id} around {self.suggested_time} "
+            f"({consistency_pct}% consistent, seen {self.occurrence_count} times)"
+        )
+
+    @staticmethod
+    def _format_action(action: str) -> str:
+        """Convert action string to human-readable format."""
+        action_mappings = {
+            "turn_on": "Turn on",
+            "turn_off": "Turn off",
+            "activated": "Activate",
+            "executed": "Execute",
+            "pressed": "Press",
+            "changed": "Change",
+        }
+        if action in action_mappings:
+            return action_mappings[action]
+        if action.startswith("set_"):
+            return f"Set to {action[4:]}"
+        return action.replace("_", " ").capitalize()
+
     def to_dict(self) -> dict[str, Any]:
         """Convert suggestion to dictionary for serialization."""
         return {
@@ -63,6 +90,7 @@ class Suggestion:
             "consistency_score": self.consistency_score,
             "occurrence_count": self.occurrence_count,
             "last_occurrence": self.last_occurrence,
+            "description": self.description,
         }
 
     @classmethod
@@ -522,7 +550,7 @@ def analyze_logbook_entries(
 
 
 async def _analyze_via_state_history(
-    hass: "HomeAssistant",
+    hass: HomeAssistant,
     start_time: datetime,
     end_time: datetime,
     min_occurrences: int,
