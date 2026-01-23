@@ -647,13 +647,22 @@ async def analyze_patterns_async(
 
         async with session.get(url, headers=headers, params=params, timeout=60) as response:
             if response.status != 200:
-                _LOGGER.error("Logbook API returned status %s", response.status)
-                return []
+                _LOGGER.warning(
+                    "Logbook API returned status %s, falling back to state history",
+                    response.status
+                )
+                return await _analyze_via_state_history(
+                    hass, start_time, end_time, min_occurrences,
+                    consistency_threshold, dismissed_suggestions
+                )
             entries = await response.json()
 
     except Exception as err:
-        _LOGGER.error("Error querying logbook API: %s", err)
-        return []
+        _LOGGER.warning("Error querying logbook API: %s, falling back to state history", err)
+        return await _analyze_via_state_history(
+            hass, start_time, end_time, min_occurrences,
+            consistency_threshold, dismissed_suggestions
+        )
 
     _LOGGER.debug("Retrieved %d logbook entries", len(entries))
 

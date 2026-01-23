@@ -16,10 +16,23 @@ import time
 from pathlib import Path
 
 import pytest
+import pytest_socket
 import requests
 from testcontainers.core.container import DockerContainer
 
+# Enable socket access IMMEDIATELY at import time for Docker communication
+# This must happen before any fixtures are collected
+pytest_socket.enable_socket()
+
 logger = logging.getLogger(__name__)
+
+
+def pytest_configure(config):
+    """Configure pytest to allow socket for e2e tests."""
+    config.addinivalue_line(
+        "markers", "enable_socket: mark test to enable socket access"
+    )
+
 
 # Test token - must match what's in initial_test_state/.storage/auth
 # For initial setup, you'll need to create this manually once
