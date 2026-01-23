@@ -8,10 +8,15 @@ import voluptuous as vol
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
-    ConfigFlowResult,
     OptionsFlow,
 )
 from homeassistant.core import callback
+
+# ConfigFlowResult was added in HA 2024.1, fall back to FlowResult for older versions
+try:
+    from homeassistant.config_entries import ConfigFlowResult
+except ImportError:
+    from homeassistant.data_entry_flow import FlowResult as ConfigFlowResult
 from .const import (
     CONF_ANALYSIS_INTERVAL,
     CONF_CONSISTENCY_THRESHOLD,
