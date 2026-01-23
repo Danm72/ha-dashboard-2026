@@ -9,6 +9,57 @@ This dashboard was built using [Claude Code](https://claude.ai/claude-code) with
 - **[Part 1: The Audit](https://dan-malone.com/blog/home-assistant-ai-implementation)** - Cataloging three years of tech debt
 - **[Part 2: The Implementation](https://dan-malone.com/blog/home-assistant-ai-implementation-part-2)** - Building this dashboard with Claude Code and ha-mcp
 
+## Automation Suggestions Integration
+
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+
+A custom Home Assistant integration that analyzes your manual actions from the logbook and suggests automations you might want to create.
+
+### Features
+
+- **Pattern Detection**: Analyzes logbook history to find repeated manual actions
+- **Time-based Suggestions**: Identifies actions performed at consistent times
+- **Configurable Thresholds**: Adjust sensitivity via options flow
+- **Sensors**: Exposes suggestion count, top suggestions, and last analysis time
+- **Services**: `analyze_now` to trigger analysis, `dismiss` to hide suggestions
+- **Persistent Notifications**: Alerts for high-confidence suggestions (80%+)
+
+### Installation via HACS (Custom Repository)
+
+1. Open HACS in Home Assistant
+2. Click the three dots menu → **Custom repositories**
+3. Add repository: `https://github.com/Danm72/ha-dashboard-2026`
+4. Category: **Integration**
+5. Click **Add**
+6. Search for "Automation Suggestions" and install
+7. Restart Home Assistant
+8. Go to Settings → Devices & Services → Add Integration → "Automation Suggestions"
+
+### Configuration Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Analysis Interval | 7 days | How often to run pattern analysis |
+| Lookback Days | 14 | How far back to analyze history |
+| Min Occurrences | 5 | Minimum times an action must occur |
+| Consistency Threshold | 70% | How consistent the timing must be |
+
+### Entities Created
+
+| Entity | Type | Description |
+|--------|------|-------------|
+| `sensor.automation_suggestions_count` | Sensor | Number of suggestions |
+| `sensor.automation_suggestions_top` | Sensor | Top 5 suggestions in attributes |
+| `sensor.automation_suggestions_last_analysis` | Sensor | Timestamp of last analysis |
+| `binary_sensor.automation_suggestions_available` | Binary Sensor | On when suggestions exist |
+
+### Services
+
+- `automation_suggestions.analyze_now` - Trigger immediate analysis
+- `automation_suggestions.dismiss` - Dismiss a suggestion by ID
+
+---
+
 ## Demo
 
 ![Dashboard Demo](screenshots/demo.gif)
