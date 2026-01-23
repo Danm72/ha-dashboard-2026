@@ -95,19 +95,29 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "synthetic_data: mark test as requiring synthetic test data (Docker mode only)"
     )
+    config.addinivalue_line(
+        "markers", "live_only: mark test as requiring a live Home Assistant instance"
+    )
 
 
 def pytest_collection_modifyitems(config, items):
-    """Skip synthetic_data tests when running in live mode."""
-    if not config.getoption("--live"):
-        return
+    """Skip tests based on mode (live vs Docker)."""
+    is_live = config.getoption("--live")
 
     skip_synthetic = pytest.mark.skip(
         reason="Test requires synthetic data from Docker container (not available in --live mode)"
     )
+    skip_live_only = pytest.mark.skip(
+        reason="Test requires --live mode with a real Home Assistant instance"
+    )
+
     for item in items:
-        if "synthetic_data" in item.keywords:
+        # Skip synthetic_data tests in live mode
+        if is_live and "synthetic_data" in item.keywords:
             item.add_marker(skip_synthetic)
+        # Skip live_only tests when NOT in live mode
+        if not is_live and "live_only" in item.keywords:
+            item.add_marker(skip_live_only)
 
 
 # Live mode configuration

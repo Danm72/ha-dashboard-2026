@@ -22,6 +22,7 @@ combine-as-imports = true
 markers = [
     "e2e: marks tests as end-to-end (deselect with '-m \"not e2e\"')",
     "synthetic_data: marks tests as requiring synthetic test data (skipped in --live mode)",
+    "live_only: marks tests as requiring a live Home Assistant instance (skipped without --live)",
 ]
 testpaths = [
     "tests",
