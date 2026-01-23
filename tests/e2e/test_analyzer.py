@@ -118,6 +118,7 @@ class TestAnalyzerPatternDetection:
         assert top_state.get("state") is not None
 
 
+@pytest.mark.synthetic_data
 class TestAnalyzerFiltering:
     """Test that the analyzer correctly filters out non-manual events.
 
@@ -126,6 +127,10 @@ class TestAnalyzerFiltering:
     - switch.morning_routine: script-triggered (has context_parent_id)
     - sensor.temperature: system events (no context_user_id)
     - light.garage: inconsistent timing (random times throughout day)
+
+    NOTE: This test class is marked with @pytest.mark.synthetic_data and will be
+    skipped when running with --live flag, as it depends on specific synthetic
+    entities in the Docker test container.
     """
 
     def _get_detected_entities(self, ha_api):

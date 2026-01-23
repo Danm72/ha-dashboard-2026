@@ -42,3 +42,6 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# E2E test credentials
+.env.e2e

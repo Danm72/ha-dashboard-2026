@@ -1,31 +1,66 @@
 """
-E2E test fixtures using testcontainers.
+E2E test fixtures using testcontainers or live Home Assistant.
 
-Spins up a real Home Assistant Docker container with our custom component
-installed to test against actual HA APIs.
+Supports two modes:
+- Docker mode (default): Spins up a real Home Assistant Docker container with
+  our custom component installed to test against actual HA APIs.
+- Live mode (--live flag): Connects to a running Home Assistant instance using
+  environment variables for URL and token.
 
-Requires: pip install testcontainers requests docker
+Docker mode requires: pip install testcontainers requests docker
+Live mode requires: HA_LIVE_URL and HA_LIVE_TOKEN environment variables
 """
 
 import logging
 import os
 import shutil
 import stat
+import sys
 import tempfile
 import time
 from pathlib import Path
 
 import pytest
 import requests
-from testcontainers.core.container import DockerContainer
+
+# Add tests directory to path for test_constants import
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from test_constants import TEST_TOKEN  # noqa: E402
 
 logger = logging.getLogger(__name__)
+
+
+# Load environment variables from .env.e2e if it exists
+def _load_env_file():
+    """Load environment variables from .env.e2e file if it exists."""
+    env_file = Path(__file__).parent.parent.parent / ".env.e2e"
+    if env_file.exists():
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(env_file)
+            logger.info(f"Loaded environment from {env_file}")
+        except ImportError:
+            # Fallback: parse the file manually
+            logger.info(f"python-dotenv not installed, parsing {env_file} manually")
+            with open(env_file) as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        key, _, value = line.partition("=")
+                        key = key.strip()
+                        value = value.strip()
+                        # Remove surrounding quotes if present
+                        if value and value[0] == value[-1] and value[0] in ('"', "'"):
+                            value = value[1:-1]
+                        os.environ.setdefault(key, value)
+
+
+_load_env_file()
 
 
 # Auto-detect Docker socket location for Docker Desktop on macOS
 def _configure_docker_socket():
     """Configure Docker socket for Docker Desktop on macOS."""
-    import os
     import platform
 
     if os.environ.get("DOCKER_HOST"):
@@ -42,17 +77,83 @@ def _configure_docker_socket():
 _configure_docker_socket()
 
 
-def pytest_configure(config):
-    """Configure pytest to allow socket for e2e tests."""
-    config.addinivalue_line(
-        "markers", "enable_socket: mark test to enable socket access"
+def pytest_addoption(parser):
+    """Add command line options for e2e tests."""
+    parser.addoption(
+        "--live",
+        action="store_true",
+        default=False,
+        help="Run e2e tests against a live Home Assistant instance instead of Docker",
     )
 
 
-# Import test token from centralized constants
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from test_constants import TEST_TOKEN
+def pytest_configure(config):
+    """Configure pytest markers."""
+    config.addinivalue_line(
+        "markers", "enable_socket: mark test to enable socket access"
+    )
+    config.addinivalue_line(
+        "markers", "synthetic_data: mark test as requiring synthetic test data (Docker mode only)"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip synthetic_data tests when running in live mode."""
+    if not config.getoption("--live"):
+        return
+
+    skip_synthetic = pytest.mark.skip(
+        reason="Test requires synthetic data from Docker container (not available in --live mode)"
+    )
+    for item in items:
+        if "synthetic_data" in item.keywords:
+            item.add_marker(skip_synthetic)
+
+
+# Live mode configuration
+LIVE_URL_DEFAULT = "http://homeassistant.local:8123"
+
+
+def _get_live_url():
+    """Get live Home Assistant URL from environment."""
+    url = os.environ.get("HA_LIVE_URL", LIVE_URL_DEFAULT)
+    # Normalize: remove trailing slash
+    return url.rstrip("/")
+
+
+def _get_live_token():
+    """Get live Home Assistant token from environment."""
+    token = os.environ.get("HA_LIVE_TOKEN")
+    if not token:
+        raise ValueError(
+            "HA_LIVE_TOKEN environment variable is required for --live mode. "
+            "Create a long-lived access token in Home Assistant and set it in .env.e2e"
+        )
+    return token
+
+
+def _validate_live_connection(url: str, token: str) -> None:
+    """Validate that we can connect to the live Home Assistant instance."""
+    try:
+        resp = requests.get(
+            f"{url}/api/",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+        if resp.status_code == 401:
+            raise ValueError(
+                f"Authentication failed for {url}. Check your HA_LIVE_TOKEN."
+            )
+        if resp.status_code != 200:
+            raise ValueError(
+                f"Unexpected response from {url}: {resp.status_code} {resp.text}"
+            )
+        logger.info(f"Successfully connected to live Home Assistant at {url}")
+    except requests.exceptions.ConnectionError as e:
+        raise ValueError(
+            f"Cannot connect to Home Assistant at {url}. "
+            f"Ensure Home Assistant is running and accessible. Error: {e}"
+        ) from e
 
 
 def _setup_config_permissions(config_path: Path) -> None:
@@ -71,9 +172,24 @@ def _setup_config_permissions(config_path: Path) -> None:
 
 
 @pytest.fixture(scope="session")
-def ha_container():
-    """Create Home Assistant container with our custom component installed."""
-    logger.info("Creating Home Assistant container...")
+def is_live_mode(request):
+    """Return True if running in live mode, False for Docker mode."""
+    return request.config.getoption("--live")
+
+
+@pytest.fixture(scope="session")
+def ha_container(request):
+    """Create Home Assistant container with our custom component installed.
+
+    In live mode, this fixture is a no-op and returns None.
+    """
+    if request.config.getoption("--live"):
+        # Live mode: no container needed
+        logger.info("Running in LIVE mode - skipping Docker container")
+        yield None
+        return
+
+    logger.info("Running in DOCKER mode - starting container")
 
     # Create temporary directory for this test session
     temp_dir = tempfile.mkdtemp(prefix="ha_e2e_test_")
@@ -100,6 +216,9 @@ def ha_container():
 
     # Set permissions
     _setup_config_permissions(config_path)
+
+    # Import here to avoid loading testcontainers in live mode
+    from testcontainers.core.container import DockerContainer
 
     # Create container
     container = (
@@ -152,14 +271,30 @@ def _wait_for_ha_ready(base_url: str, timeout: int = 120) -> None:
 
 
 @pytest.fixture(scope="session")
-def ha_url(ha_container):
-    """Return the Home Assistant URL."""
+def ha_url(request, ha_container):
+    """Return the Home Assistant URL.
+
+    In live mode, returns HA_LIVE_URL from environment.
+    In Docker mode, returns the container's URL.
+    """
+    if request.config.getoption("--live"):
+        return _get_live_url()
     return ha_container["base_url"]
 
 
 @pytest.fixture(scope="session")
-def ha_token():
-    """Return the test token for authenticated API calls."""
+def ha_token(request):
+    """Return the token for authenticated API calls.
+
+    In live mode, returns HA_LIVE_TOKEN from environment.
+    In Docker mode, returns the test token.
+    """
+    if request.config.getoption("--live"):
+        token = _get_live_token()
+        # Validate connection before returning
+        url = _get_live_url()
+        _validate_live_connection(url, token)
+        return token
     return TEST_TOKEN
 
 

@@ -21,6 +21,7 @@ combine-as-imports = true
 [tool.pytest.ini_options]
 markers = [
     "e2e: marks tests as end-to-end (deselect with '-m \"not e2e\"')",
+    "synthetic_data: marks tests as requiring synthetic test data (skipped in --live mode)",
 ]
 testpaths = [
     "tests",
