@@ -189,7 +189,7 @@ def create_schema(conn):
 
 
 def generate_state_changes(pattern, base_date):
-    """Generate state changes for a pattern."""
+    """Generate state changes for a happy path pattern (manual user action)."""
     states = []
 
     base_hour, base_minute, base_second = map(int, pattern["base_time"].split(":"))
@@ -225,6 +225,111 @@ def generate_state_changes(pattern, base_date):
     return states
 
 
+def generate_automation_triggered_events(pattern, base_date):
+    """Generate automation-triggered events (should be filtered out)."""
+    states = []
+
+    base_hour, base_minute, _ = map(int, pattern["base_time"].split(":"))
+    variance = pattern["variance_minutes"]
+
+    for day_offset in range(pattern["days"]):
+        day = base_date - timedelta(days=day_offset)
+
+        if pattern["weekdays_only"] and day.weekday() >= 5:
+            continue
+
+        minute_offset = random.randint(-variance, variance)
+        event_time = day.replace(
+            hour=base_hour,
+            minute=max(0, min(59, base_minute + minute_offset)),
+            second=random.randint(0, 59),
+            microsecond=0
+        )
+
+        states.append({
+            "entity_id": pattern["entity_id"],
+            "state": pattern["state"],
+            "attributes": json.dumps({"friendly_name": pattern["entity_id"].split(".")[1].replace("_", " ").title()}),
+            "last_changed": event_time.isoformat(),
+            "last_updated": event_time.isoformat(),
+            "context_id": f"ctx_auto_{day_offset}_{pattern['entity_id']}",
+            "context_user_id": pattern.get("context_user_id"),  # None for automation
+            "context_parent_id": pattern.get("context_parent_id"),  # Has parent = automation triggered
+        })
+
+    return states
+
+
+def generate_system_events(pattern, base_date):
+    """Generate system events without user context (should be filtered out)."""
+    states = []
+    state_values = pattern["state_values"]
+    hours_between = pattern["hours_between"]
+
+    for day_offset in range(pattern["days"]):
+        day = base_date - timedelta(days=day_offset)
+
+        # Generate events throughout the day
+        for hour in range(0, 24, hours_between):
+            event_time = day.replace(
+                hour=hour,
+                minute=random.randint(0, 5),
+                second=random.randint(0, 59),
+                microsecond=0
+            )
+
+            state_value = random.choice(state_values)
+            states.append({
+                "entity_id": pattern["entity_id"],
+                "state": state_value,
+                "attributes": json.dumps({
+                    "friendly_name": pattern["entity_id"].split(".")[1].replace("_", " ").title(),
+                    "unit_of_measurement": "°C"
+                }),
+                "last_changed": event_time.isoformat(),
+                "last_updated": event_time.isoformat(),
+                "context_id": f"ctx_sys_{day_offset}_{hour}_{pattern['entity_id']}",
+                "context_user_id": pattern.get("context_user_id"),  # None for system
+                "context_parent_id": pattern.get("context_parent_id"),
+            })
+
+    return states
+
+
+def generate_inconsistent_events(pattern, base_date):
+    """Generate random/inconsistent events (below consistency threshold)."""
+    states = []
+    events_per_day = pattern["events_per_day"]
+
+    for day_offset in range(pattern["days"]):
+        day = base_date - timedelta(days=day_offset)
+
+        # Generate events at completely random times
+        for event_num in range(events_per_day):
+            random_hour = random.randint(0, 23)
+            random_minute = random.randint(0, 59)
+
+            event_time = day.replace(
+                hour=random_hour,
+                minute=random_minute,
+                second=random.randint(0, 59),
+                microsecond=0
+            )
+
+            states.append({
+                "entity_id": pattern["entity_id"],
+                "state": pattern["state"],
+                "attributes": json.dumps({"friendly_name": pattern["entity_id"].split(".")[1].replace("_", " ").title()}),
+                "last_changed": event_time.isoformat(),
+                "last_updated": event_time.isoformat(),
+                "context_id": f"ctx_rand_{day_offset}_{event_num}_{pattern['entity_id']}",
+                "context_user_id": pattern.get("context_user_id"),  # Manual but inconsistent
+                "context_parent_id": pattern.get("context_parent_id"),
+            })
+
+    return states
+
+
 def main():
     """Generate the test database."""
     # Ensure directory exists
@@ -244,9 +349,39 @@ def main():
     base_date = datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
     all_states = []
 
+    # HAPPY PATH: Manual user actions with consistent timing
+    print("\nGenerating HAPPY PATH patterns (should be detected):")
     for pattern in PATTERNS:
         states = generate_state_changes(pattern, base_date)
         all_states.extend(states)
+        print(f"  + {pattern['entity_id']} -> {pattern['state']} around {pattern['base_time']} ({len(states)} events)")
+
+    # UNHAPPY PATH: Events that should be filtered out
+    print("\nGenerating UNHAPPY PATH patterns (should be filtered):")
+
+    # Automation-triggered events
+    for pattern in AUTOMATION_TRIGGERED_PATTERNS:
+        states = generate_automation_triggered_events(pattern, base_date)
+        all_states.extend(states)
+        print(f"  - {pattern['entity_id']} (automation-triggered, has context_parent_id) ({len(states)} events)")
+
+    # Script-triggered events
+    for pattern in SCRIPT_TRIGGERED_PATTERNS:
+        states = generate_automation_triggered_events(pattern, base_date)  # Same logic
+        all_states.extend(states)
+        print(f"  - {pattern['entity_id']} (script-triggered, has context_parent_id) ({len(states)} events)")
+
+    # System events without user context
+    for pattern in SYSTEM_EVENT_PATTERNS:
+        states = generate_system_events(pattern, base_date)
+        all_states.extend(states)
+        print(f"  - {pattern['entity_id']} (system event, no context_user_id) ({len(states)} events)")
+
+    # Random/inconsistent events
+    for pattern in INCONSISTENT_PATTERNS:
+        states = generate_inconsistent_events(pattern, base_date)
+        all_states.extend(states)
+        print(f"  - {pattern['entity_id']} (inconsistent timing) ({len(states)} events)")
 
     # Insert states
     for state in all_states:
@@ -275,11 +410,15 @@ def main():
     # Print summary
     cursor.execute("SELECT COUNT(*) FROM states")
     count = cursor.fetchone()[0]
+    print(f"\n{'='*60}")
     print(f"Created {DB_PATH}")
-    print(f"Generated {count} state records")
-    print(f"Patterns included:")
-    for p in PATTERNS:
-        print(f"  - {p['entity_id']} -> {p['state']} around {p['base_time']}")
+    print(f"Generated {count} total state records")
+
+    # Show breakdown by entity
+    cursor.execute("SELECT entity_id, COUNT(*) FROM states GROUP BY entity_id ORDER BY entity_id")
+    print("\nBreakdown by entity:")
+    for row in cursor.fetchall():
+        print(f"  {row[0]}: {row[1]} events")
 
     conn.close()
 
