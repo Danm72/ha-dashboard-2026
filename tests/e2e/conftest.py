@@ -88,10 +88,11 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    """Configure pytest markers."""
-    config.addinivalue_line(
-        "markers", "enable_socket: mark test to enable socket access"
-    )
+    """Configure pytest markers for e2e tests.
+
+    Note: pytest-homeassistant-custom-component is disabled via pytest.ini
+    to allow Docker/testcontainers to work properly.
+    """
     config.addinivalue_line(
         "markers", "synthetic_data: mark test as requiring synthetic test data (Docker mode only)"
     )
