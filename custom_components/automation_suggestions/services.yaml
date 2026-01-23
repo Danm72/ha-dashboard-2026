@@ -1,15 +1,23 @@
 analyze_now:
   name: Analyze Now
-  description: Trigger immediate pattern analysis.
-  fields: {}
+  description: >-
+    Scan your logbook history immediately for patterns instead of waiting for
+    the scheduled analysis. Use this after changing settings or to get fresh
+    suggestions. Results appear in the Top Suggestions sensor.
 
 dismiss:
   name: Dismiss Suggestion
-  description: Permanently hide a suggestion.
+  description: >-
+    Permanently hide a suggestion you don't want to see. The suggestion won't
+    appear again even after future analyses. Find suggestion IDs in the
+    attributes of the Top Suggestions sensor (sensor.automation_suggestions_top).
   fields:
     suggestion_id:
       name: Suggestion ID
-      description: The ID of the suggestion to dismiss.
+      description: >-
+        The unique identifier of the suggestion to dismiss. Find this in the
+        Top Suggestions sensor attributes under "suggestions" → "id".
+        Example: light_kitchen_turn_on_07_00
       required: true
       example: "light_kitchen_turn_on_07_00"
       selector:

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Automation Suggestions",
-        "description": "Configure the Automation Suggestions integration to analyze your manual actions and suggest automations.",
+        "description": "This integration watches your manual actions (lights, switches, etc.) and suggests automations based on patterns.\n\n**After setup:**\n1. Go to Developer Tools → Services → `automation_suggestions.analyze_now` to run your first scan\n2. View results in the **Top Suggestions** sensor attributes\n3. You'll get notifications for high-confidence suggestions (80%+)\n\n**Tip:** Wait 1-2 weeks for best results - the more history, the better the patterns.",
         "data": {
           "analysis_interval": "Analysis interval (days)",
           "lookback_days": "Days of history to analyze",
@@ -29,6 +29,7 @@
     "step": {
       "init": {
         "title": "Automation Suggestions Options",
+        "description": "**View your suggestions:** Check the Top Suggestions sensor attributes or call `automation_suggestions.analyze_now` in Developer Tools → Services.\n\nAdjust these settings to tune pattern detection:",
         "data": {
           "analysis_interval": "Analysis interval (days)",
           "lookback_days": "Days of history to analyze",
@@ -47,18 +48,52 @@
   "entity": {
     "sensor": {
       "count": {
-        "name": "Suggestions count"
+        "name": "Suggestions count",
+        "state_attributes": {
+          "suggestions": {
+            "name": "Suggestions"
+          }
+        }
       },
       "top": {
-        "name": "Top suggestions"
+        "name": "Top suggestions",
+        "state_attributes": {
+          "suggestions": {
+            "name": "Suggestion details"
+          }
+        }
       },
       "last_analysis": {
-        "name": "Last analysis"
+        "name": "Last analysis",
+        "state_attributes": {
+          "status": {
+            "name": "Analysis status"
+          },
+          "suggestion_count": {
+            "name": "Suggestions found"
+          }
+        }
       }
     },
     "binary_sensor": {
       "available": {
         "name": "Suggestions available"
+      }
+    }
+  },
+  "services": {
+    "analyze_now": {
+      "name": "Analyze now",
+      "description": "Scan your logbook history immediately for patterns instead of waiting for the scheduled analysis. Use this after changing settings or to get fresh suggestions."
+    },
+    "dismiss": {
+      "name": "Dismiss suggestion",
+      "description": "Permanently hide a suggestion you don't want. The suggestion won't appear again even after future analyses. Find suggestion IDs in the Top Suggestions sensor attributes.",
+      "fields": {
+        "suggestion_id": {
+          "name": "Suggestion ID",
+          "description": "The unique ID of the suggestion to dismiss (e.g., 'light_kitchen_turn_on_07_00'). Find this in the Top Suggestions sensor attributes."
+        }
       }
     }
   }
