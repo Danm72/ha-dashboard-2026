@@ -5,6 +5,7 @@ Provides sensors to expose automation suggestion data to Home Assistant.
 
 from __future__ import annotations
 
+from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -170,11 +171,14 @@ class AutomationSuggestionsLastAnalysisSensor(AutomationSuggestionsBaseSensor):
         self._attr_unique_id = f"{entry.entry_id}_last_analysis"
 
     @property
-    def native_value(self) -> str | None:
-        """Return the ISO timestamp of the last successful analysis."""
-        if self.coordinator.last_update_success_time is None:
+    def native_value(self) -> datetime | None:
+        """Return the timestamp of the last successful analysis."""
+        # Use the coordinator's internal last_update_success tracking
+        # Return None if no successful update yet
+        if not self.coordinator.last_update_success:
             return None
-        return self.coordinator.last_update_success_time.isoformat()
+        # Return the last_updated time from coordinator if available
+        return getattr(self.coordinator, '_last_update_time', None)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

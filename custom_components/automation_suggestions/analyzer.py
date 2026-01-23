@@ -525,23 +525,19 @@ async def analyze_patterns_async(
 
     _LOGGER.debug("Found %d entities in tracked domains", len(tracked_entity_ids))
 
-    # Query state history using recorder
-    # We need to run this in the executor since it's a blocking operation
-    def get_history() -> dict[str, list[Any]]:
-        """Get state history from recorder."""
-        recorder = get_instance(hass)
-        with recorder.session_scope() as _session:
-            return get_significant_states(
-                hass,
-                start_time,
-                end_time,
-                entity_ids=tracked_entity_ids,
-                significant_changes_only=True,
-            )
-
+    # Query state history using recorder (async API)
     try:
-        # Run blocking database query in executor
-        states_by_entity = await hass.async_add_executor_job(get_history)
+        states_by_entity = await get_instance(hass).async_add_executor_job(
+            get_significant_states,
+            hass,
+            start_time,
+            end_time,
+            tracked_entity_ids,
+            None,  # filters
+            True,  # include_start_time_state
+            True,  # significant_changes_only
+            True,  # minimal_response
+        )
     except Exception as err:
         _LOGGER.error("Error querying state history: %s", err)
         return []

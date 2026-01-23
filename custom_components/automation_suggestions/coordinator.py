@@ -7,7 +7,7 @@ of dismissed suggestions.
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
@@ -80,6 +80,7 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
         )
         self._dismissed: set[str] = set()
         self._notified: set[str] = set()
+        self._last_update_time: datetime | None = None
 
         # Cache config values
         self._lookback_days: int = entry.options.get(
@@ -284,6 +285,10 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
             _LOGGER.info(
                 "Pattern analysis complete: found %d suggestions", len(suggestions)
             )
+
+            # Track the update time
+            from homeassistant.util import dt as dt_util
+            self._last_update_time = dt_util.utcnow()
 
             # Send notifications for new high-confidence suggestions
             await self._async_send_notifications(suggestions)
