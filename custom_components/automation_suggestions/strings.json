@@ -31,5 +31,23 @@
         }
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "count": {
+        "name": "Suggestions count"
+      },
+      "top": {
+        "name": "Top suggestions"
+      },
+      "last_analysis": {
+        "name": "Last analysis"
+      }
+    },
+    "binary_sensor": {
+      "available": {
+        "name": "Suggestions available"
+      }
+    }
   }
 }

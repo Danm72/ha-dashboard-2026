@@ -14,6 +14,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -52,14 +53,40 @@ async def async_setup_entry(
     _LOGGER.debug("Added %d automation suggestion sensors", len(entities))
 
 
-class AutomationSuggestionsCountSensor(
+class AutomationSuggestionsBaseSensor(
     CoordinatorEntity[AutomationSuggestionsCoordinator], SensorEntity
 ):
-    """Sensor showing the count of automation suggestions."""
+    """Base class for automation suggestion sensors."""
 
     _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: AutomationSuggestionsCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the base sensor.
+
+        Args:
+            coordinator: The data update coordinator.
+            entry: Config entry for unique ID generation.
+        """
+        super().__init__(coordinator)
+        self._entry = entry
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name="Automation Suggestions",
+            manufacturer="Home Assistant Community",
+            entry_type=DeviceEntryType.SERVICE,
+        )
+
+
+class AutomationSuggestionsCountSensor(AutomationSuggestionsBaseSensor):
+    """Sensor showing the count of automation suggestions."""
+
     _attr_icon = "mdi:counter"
     _attr_native_unit_of_measurement = "suggestions"
+    _attr_translation_key = "count"
 
     def __init__(
         self,
@@ -72,10 +99,8 @@ class AutomationSuggestionsCountSensor(
             coordinator: The data update coordinator.
             entry: Config entry for unique ID generation.
         """
-        super().__init__(coordinator)
+        super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_count"
-        self._attr_name = "Automation Suggestions Count"
-        self.entity_id = "sensor.automation_suggestions_count"
 
     @property
     def native_value(self) -> int:
@@ -85,13 +110,11 @@ class AutomationSuggestionsCountSensor(
         return len(self.coordinator.data)
 
 
-class AutomationSuggestionsTopSensor(
-    CoordinatorEntity[AutomationSuggestionsCoordinator], SensorEntity
-):
+class AutomationSuggestionsTopSensor(AutomationSuggestionsBaseSensor):
     """Sensor exposing the top automation suggestions as attributes."""
 
-    _attr_has_entity_name = True
     _attr_icon = "mdi:lightbulb-auto-outline"
+    _attr_translation_key = "top"
 
     def __init__(
         self,
@@ -104,10 +127,8 @@ class AutomationSuggestionsTopSensor(
             coordinator: The data update coordinator.
             entry: Config entry for unique ID generation.
         """
-        super().__init__(coordinator)
+        super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_top"
-        self._attr_name = "Automation Suggestions Top"
-        self.entity_id = "sensor.automation_suggestions_top"
 
     @property
     def native_value(self) -> int:
@@ -129,14 +150,12 @@ class AutomationSuggestionsTopSensor(
         return {"suggestions": suggestions_list}
 
 
-class AutomationSuggestionsLastAnalysisSensor(
-    CoordinatorEntity[AutomationSuggestionsCoordinator], SensorEntity
-):
+class AutomationSuggestionsLastAnalysisSensor(AutomationSuggestionsBaseSensor):
     """Sensor showing the timestamp of the last analysis."""
 
-    _attr_has_entity_name = True
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_icon = "mdi:clock-check-outline"
+    _attr_translation_key = "last_analysis"
 
     def __init__(
         self,
@@ -149,10 +168,8 @@ class AutomationSuggestionsLastAnalysisSensor(
             coordinator: The data update coordinator.
             entry: Config entry for unique ID generation.
         """
-        super().__init__(coordinator)
+        super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_last_analysis"
-        self._attr_name = "Automation Suggestions Last Analysis"
-        self.entity_id = "sensor.automation_suggestions_last_analysis"
 
     @property
     def native_value(self) -> str | None:
@@ -162,8 +179,12 @@ class AutomationSuggestionsLastAnalysisSensor(
         return self.coordinator.last_update_success_time.isoformat()
 
     @property
-    def extra_state_attributes(self) -> dict[str, str]:
-        """Return the status of the last analysis."""
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the status and count of the last analysis."""
+        suggestion_count = 0
+        if self.coordinator.data is not None:
+            suggestion_count = len(self.coordinator.data)
+
         if self.coordinator.last_update_success:
-            return {"status": "success"}
-        return {"status": "error"}
+            return {"status": "success", "suggestion_count": suggestion_count}
+        return {"status": "error", "suggestion_count": suggestion_count}
