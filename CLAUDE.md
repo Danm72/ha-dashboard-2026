@@ -53,15 +53,30 @@ pip install testcontainers requests
 ### Running E2E Tests
 
 ```bash
-# Run e2e tests only
-pytest tests/e2e/ -v
+# Run e2e tests (MUST use -c flag for isolated config)
+pytest tests/e2e/ -c tests/e2e/pytest.ini
 
 # Run all tests except e2e
 pytest --ignore=tests/e2e/
 
-# Run e2e with specific marker
-pytest -m e2e
+# Run e2e in live mode (against real HA instance)
+pytest tests/e2e/ -c tests/e2e/pytest.ini --live
 ```
+
+### Socket Blocking Fix
+
+`pytest-homeassistant-custom-component` blocks sockets via `pytest-socket`, breaking Docker/testcontainers.
+
+**Key discovery**: The plugin registers as `homeassistant` (not `homeassistant-custom-component`):
+```
+# From entry_points.txt:
+[pytest11]
+homeassistant = pytest_homeassistant_custom_component.plugins
+```
+
+**Solution**: `tests/e2e/pytest.ini` uses `-p no:homeassistant` to disable the plugin.
+
+See: `docs/solutions/testing/pytest-homeassistant-socket-blocking.md`
 
 ### How It Works
 
