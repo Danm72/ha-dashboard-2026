@@ -1,7 +1,5 @@
 """Integration test fixtures using pytest-homeassistant-custom-component."""
 
-pytest_plugins = ["pytest_homeassistant_custom_component"]
-
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -52,7 +50,13 @@ def mock_analyzer(mock_suggestions):
 
 @pytest.fixture
 def mock_suggestions():
-    """Return sample suggestions for tests."""
+    """Return sample suggestions for tests.
+
+    Includes suggestions with varying confidence scores:
+    - suggestion 1: consistency_score=0.85 (high, above 80% threshold)
+    - suggestion 2: consistency_score=0.72 (medium)
+    - suggestion 3: consistency_score=0.65 (low)
+    """
     from custom_components.automation_suggestions.analyzer import Suggestion
 
     return [
@@ -74,7 +78,7 @@ def mock_suggestions():
             suggested_time="22:30",
             time_window_start="22:15",
             time_window_end="22:45",
-            consistency_score=0.78,
+            consistency_score=0.72,
             occurrence_count=10,
             last_occurrence="2026-01-20T22:32:00+00:00",
         ),
@@ -85,7 +89,7 @@ def mock_suggestions():
             suggested_time="08:00",
             time_window_start="07:45",
             time_window_end="08:15",
-            consistency_score=0.72,
+            consistency_score=0.65,
             occurrence_count=8,
             last_occurrence="2026-01-19T08:02:00+00:00",
         ),
@@ -105,7 +109,7 @@ def mock_store():
         "custom_components.automation_suggestions.coordinator.Store"
     ) as mock_store_class:
         mock_store = AsyncMock()
-        mock_store.async_load = AsyncMock(return_value={"dismissed": [], "notified": []})
+        mock_store.async_load = AsyncMock(return_value={"dismissed": []})
         mock_store.async_save = AsyncMock()
         mock_store_class.return_value = mock_store
         yield mock_store
