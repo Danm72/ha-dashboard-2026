@@ -1,0 +1,13 @@
+{
+  "domain": "automation_suggestions",
+  "name": "Automation Suggestions",
+  "codeowners": ["@Danm72"],
+  "config_flow": true,
+  "dependencies": ["recorder"],
+  "documentation": "https://github.com/Danm72/ha-dashboard-2026",
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Danm72/ha-dashboard-2026/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

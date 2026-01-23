@@ -1,0 +1,16 @@
+analyze_now:
+  name: Analyze Now
+  description: Trigger immediate pattern analysis.
+  fields: {}
+
+dismiss:
+  name: Dismiss Suggestion
+  description: Permanently hide a suggestion.
+  fields:
+    suggestion_id:
+      name: Suggestion ID
+      description: The ID of the suggestion to dismiss.
+      required: true
+      example: "light_kitchen_turn_on_07_00"
+      selector:
+        text:

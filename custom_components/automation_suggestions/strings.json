@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Automation Suggestions",
+        "description": "Configure the Automation Suggestions integration to analyze your manual actions and suggest automations.",
+        "data": {
+          "analysis_interval": "Analysis interval (days)",
+          "lookback_days": "Days of history to analyze",
+          "min_occurrences": "Minimum occurrences for pattern",
+          "consistency_threshold": "Consistency threshold (0-1)"
+        }
+      }
+    },
+    "error": {
+      "already_configured": "Integration is already configured"
+    },
+    "abort": {
+      "already_configured": "Integration is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Automation Suggestions Options",
+        "data": {
+          "analysis_interval": "Analysis interval (days)",
+          "lookback_days": "Days of history to analyze",
+          "min_occurrences": "Minimum occurrences for pattern",
+          "consistency_threshold": "Consistency threshold (0-1)"
+        }
+      }
+    }
+  }
+}

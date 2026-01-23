@@ -78,11 +78,11 @@ custom_components/automation_suggestions/
 #### Phase 1: Scaffold & Core Structure
 
 **Tasks:**
-- [ ] Clone HA core repo for scaffold tool access
-- [ ] Run `python3 -m script.scaffold integration` with domain `automation_suggestions`
-- [ ] Move generated files to `custom_components/automation_suggestions/`
-- [ ] Update `manifest.json` with correct metadata
-- [ ] Create `const.py` with domain and default values
+- [x] Clone HA core repo for scaffold tool access
+- [x] Run `python3 -m script.scaffold integration` with domain `automation_suggestions`
+- [x] Move generated files to `custom_components/automation_suggestions/`
+- [x] Update `manifest.json` with correct metadata
+- [x] Create `const.py` with domain and default values
 
 **manifest.json:**
 ```json
@@ -129,10 +129,10 @@ TRACKED_DOMAINS = [
 #### Phase 2: Analyzer Module
 
 **Tasks:**
-- [ ] Port `extract_manual_actions.py` logic to `analyzer.py`
-- [ ] Convert synchronous code to async-compatible (executor-wrapped)
-- [ ] Add support for `input_*` domains
-- [ ] Use HA's logbook API instead of REST calls
+- [x] Port `extract_manual_actions.py` logic to `analyzer.py`
+- [x] Convert synchronous code to async-compatible (executor-wrapped)
+- [x] Add support for `input_*` domains
+- [x] Use HA's logbook API instead of REST calls
 - [ ] Add tests ported from existing test suite
 
 **Key Functions:**
@@ -165,10 +165,10 @@ class Suggestion:
 #### Phase 3: Coordinator & Storage
 
 **Tasks:**
-- [ ] Create `coordinator.py` with `DataUpdateCoordinator`
-- [ ] Set update interval from config (default 7 days)
-- [ ] Implement `Store` for dismissed suggestions persistence
-- [ ] Run analysis in executor to avoid blocking
+- [x] Create `coordinator.py` with `DataUpdateCoordinator`
+- [x] Set update interval from config (default 7 days)
+- [x] Implement `Store` for dismissed suggestions persistence
+- [x] Run analysis in executor to avoid blocking
 
 **coordinator.py pattern:**
 ```python
@@ -201,10 +201,10 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
 #### Phase 4: Sensors
 
 **Tasks:**
-- [ ] Create `sensor.py` with count and top suggestions sensors
-- [ ] Create `binary_sensor.py` with availability sensor
-- [ ] Add `last_analysis` timestamp sensor
-- [ ] Implement `CoordinatorEntity` pattern
+- [x] Create `sensor.py` with count and top suggestions sensors
+- [x] Create `binary_sensor.py` with availability sensor
+- [x] Add `last_analysis` timestamp sensor
+- [x] Implement `CoordinatorEntity` pattern
 
 **Sensors:**
 
@@ -218,10 +218,10 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
 #### Phase 5: Services
 
 **Tasks:**
-- [ ] Create `services.yaml` with service definitions
-- [ ] Implement `analyze_now` service handler
-- [ ] Implement `dismiss` service handler
-- [ ] Register services in coordinator init
+- [x] Create `services.yaml` with service definitions
+- [x] Implement `analyze_now` service handler
+- [x] Implement `dismiss` service handler
+- [x] Register services in coordinator init
 
 **services.yaml:**
 ```yaml
@@ -246,9 +246,9 @@ dismiss:
 #### Phase 6: Config Flow
 
 **Tasks:**
-- [ ] Implement `ConfigFlow` for initial setup
-- [ ] Implement `OptionsFlow` for reconfiguration
-- [ ] Add translations in `strings.json`
+- [x] Implement `ConfigFlow` for initial setup
+- [x] Implement `OptionsFlow` for reconfiguration
+- [x] Add translations in `strings.json`
 
 **Config Options:**
 
@@ -262,9 +262,9 @@ dismiss:
 #### Phase 7: Notifications
 
 **Tasks:**
-- [ ] Send persistent notification for new high-confidence suggestions
-- [ ] Track notified suggestions to avoid spam
-- [ ] Format notification with actionable info
+- [x] Send persistent notification for new high-confidence suggestions
+- [x] Track notified suggestions to avoid spam
+- [x] Format notification with actionable info
 
 **Notification Format:**
 ```
@@ -1077,6 +1077,229 @@ ha-dashboard-2026/
 | Per-user filtering? | **No** - single-user in V1 |
 | Notification type? | **Persistent notification** |
 | Time window size? | **30 minutes** (from existing tool) |
+
+#### Phase 9: Scaffold Compliance Fixes
+
+This phase documents gaps identified by comparing the manual implementation against HA Core's official scaffold templates.
+
+### Scaffold Template References
+
+**Location in HA Core:** `script/scaffold/templates/`
+
+| Template | Path | Purpose |
+|----------|------|---------|
+| Integration base | `integration/integration/__init__.py` | Basic async_setup pattern |
+| Integration manifest | `integration/integration/manifest.json` | Required manifest fields |
+| Quality scale | `integration/integration/quality_scale.yaml` | Bronze rule tracking |
+| Config flow init | `config_flow/integration/__init__.py` | Modern runtime_data pattern |
+| Config flow | `config_flow/integration/config_flow.py` | ConfigFlow with error handling |
+| Test conftest | `config_flow/tests/conftest.py` | mock_setup_entry fixture |
+| Config flow tests | `config_flow/tests/test_config_flow.py` | Comprehensive flow tests |
+
+### Issues to Fix
+
+#### 1. Missing `quality_scale.yaml` (Priority: Medium)
+
+**Status:** ❌ Missing
+
+The scaffold creates this file to track Bronze rule compliance. Create:
+
+**File:** `custom_components/automation_suggestions/quality_scale.yaml`
+```yaml
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: Integration does not register custom actions.
+  appropriate-polling: done
+  brands: todo
+  common-modules: done
+  config-flow-test-coverage: todo
+  config-flow: done
+  dependency-transparency: done
+  docs-actions: todo
+  docs-high-level-description: todo
+  docs-installation-instructions: todo
+  docs-removal-instructions: todo
+  entity-event-setup:
+    status: exempt
+    comment: Integration uses coordinator pattern.
+  entity-unique-id: done
+  has-entity-name: todo
+  runtime-data: todo
+  test-before-configure:
+    status: exempt
+    comment: No external service to test during config.
+  test-before-setup:
+    status: exempt
+    comment: Relies on recorder which is already validated.
+  unique-config-entry: done
+```
+
+#### 2. Missing `quality_scale` in `manifest.json` (Priority: Medium)
+
+**Status:** ❌ Missing
+
+**Current manifest.json:**
+```json
+{
+  "domain": "automation_suggestions",
+  ...
+}
+```
+
+**Add this key:**
+```json
+"quality_scale": "bronze"
+```
+
+#### 3. Using `hass.data[DOMAIN]` Instead of `runtime_data` (Priority: High)
+
+**Status:** ❌ Non-compliant
+
+Modern HA pattern uses `entry.runtime_data` instead of `hass.data[DOMAIN][entry.entry_id]`.
+
+**Current (`__init__.py`):**
+```python
+hass.data.setdefault(DOMAIN, {})
+hass.data[DOMAIN][entry.entry_id] = {"coordinator": coordinator}
+```
+
+**Should be:**
+```python
+type AutomationSuggestionsConfigEntry = ConfigEntry[AutomationSuggestionsCoordinator]
+
+async def async_setup_entry(hass: HomeAssistant, entry: AutomationSuggestionsConfigEntry) -> bool:
+    # ...
+    entry.runtime_data = coordinator
+```
+
+**Reference:** `script/scaffold/templates/config_flow/integration/__init__.py` lines 13-25
+
+#### 4. `PLATFORMS` Should Use `Platform` Enum (Priority: Low)
+
+**Status:** ❌ Non-compliant
+
+**Current:**
+```python
+PLATFORMS: list[str] = ["sensor", "binary_sensor"]
+```
+
+**Should be:**
+```python
+from homeassistant.const import Platform
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
+```
+
+**Reference:** `script/scaffold/templates/config_flow/integration/__init__.py` line 11
+
+#### 5. Missing `MINOR_VERSION` in Config Flow (Priority: Low)
+
+**Status:** ❌ Missing
+
+**Current (`config_flow.py`):**
+```python
+VERSION = 1
+```
+
+**Should add:**
+```python
+VERSION = 1
+MINOR_VERSION = 1
+```
+
+#### 6. Missing Standard Error Keys in `strings.json` (Priority: Low)
+
+**Status:** ⚠️ Partial
+
+Scaffold template config flow expects these standard error keys for robustness:
+
+**Current `strings.json` errors:**
+```json
+"error": {
+  "already_configured": "Integration is already configured"
+}
+```
+
+**Should add (for completeness):**
+```json
+"error": {
+  "already_configured": "Integration is already configured",
+  "cannot_connect": "Failed to connect",
+  "invalid_auth": "Invalid authentication",
+  "unknown": "Unexpected error"
+}
+```
+
+**Reference:** `script/scaffold/templates/config_flow/integration/config_flow.py` lines 84-90
+
+#### 7. Missing `test_config_flow.py` (Priority: High)
+
+**Status:** ❌ Missing
+
+The scaffold generates comprehensive config flow tests. Need to create:
+
+**File:** `tests/integration/test_config_flow.py`
+
+**Required test cases (from scaffold template):**
+- `test_form` - Test flow initialization and successful completion
+- `test_form_invalid_auth` - Test auth error handling and recovery
+- `test_form_cannot_connect` - Test connection error handling and recovery
+- `test_already_configured` - Test duplicate prevention
+
+**Reference:** `script/scaffold/templates/config_flow/tests/test_config_flow.py` (146 lines)
+
+#### 8. Coordinator Missing `config_entry` Parameter (Priority: Medium)
+
+**Status:** ❌ Missing
+
+The coordinator should pass `config_entry` to parent for proper lifecycle management.
+
+**Current (`coordinator.py`):**
+```python
+super().__init__(
+    hass,
+    _LOGGER,
+    name=DOMAIN,
+    update_interval=timedelta(days=analysis_interval_days),
+)
+```
+
+**Should be:**
+```python
+super().__init__(
+    hass,
+    _LOGGER,
+    name=DOMAIN,
+    update_interval=timedelta(days=analysis_interval_days),
+    config_entry=entry,  # ADD THIS
+)
+```
+
+### Summary Table
+
+| Issue | Severity | Effort | Status |
+|-------|----------|--------|--------|
+| Missing `quality_scale.yaml` | Medium | Low | ❌ TODO |
+| Missing `quality_scale` in manifest | Medium | Low | ❌ TODO |
+| Using `hass.data` instead of `runtime_data` | High | Medium | ❌ TODO |
+| `PLATFORMS` as strings not enum | Low | Low | ❌ TODO |
+| Missing `MINOR_VERSION` | Low | Low | ❌ TODO |
+| Missing standard error strings | Low | Low | ❌ TODO |
+| Missing config flow tests | High | Medium | ❌ TODO |
+| Coordinator missing `config_entry` param | Medium | Low | ❌ TODO |
+
+**Tasks:**
+- [ ] Create `quality_scale.yaml` with Bronze rule status
+- [ ] Add `quality_scale: "bronze"` to `manifest.json`
+- [ ] Refactor `__init__.py` to use `entry.runtime_data` pattern
+- [ ] Change `PLATFORMS` to use `Platform` enum
+- [ ] Add `MINOR_VERSION = 1` to `config_flow.py`
+- [ ] Add standard error keys to `strings.json`
+- [ ] Create `tests/integration/test_config_flow.py` with full coverage
+- [ ] Add `config_entry=entry` parameter to coordinator `__init__`
+
+---
 
 ## References
 
