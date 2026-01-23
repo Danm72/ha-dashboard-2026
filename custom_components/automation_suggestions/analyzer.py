@@ -626,17 +626,35 @@ async def analyze_patterns_async(
         )
 
         # Convert logbook entries to our format
+        entries_with_user = 0
+        entries_without_user = 0
+        sample_entries = []
+
         for entry in logbook_entries:
-            entries.append({
+            converted = {
                 "entity_id": entry.get("entity_id", ""),
                 "state": entry.get("state", ""),
                 "when": entry.get("when"),
                 "context_user_id": entry.get("context_user_id"),
                 "context_event_type": entry.get("context_event_type"),
                 "context_domain": entry.get("context_domain"),
-            })
+            }
+            entries.append(converted)
 
-        _LOGGER.info("Retrieved %d logbook entries via EventProcessor", len(entries))
+            # Track stats for debugging
+            if entry.get("context_user_id"):
+                entries_with_user += 1
+                if len(sample_entries) < 5:
+                    sample_entries.append(converted)
+            else:
+                entries_without_user += 1
+
+        _LOGGER.info(
+            "EventProcessor stats: %d total entries, %d with context_user_id, %d without. "
+            "Sample entries with user: %s",
+            len(entries), entries_with_user, entries_without_user,
+            sample_entries[:3] if sample_entries else "none"
+        )
 
     except ImportError as ie:
         _LOGGER.debug("Logbook EventProcessor not available: %s", ie)

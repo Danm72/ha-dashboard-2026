@@ -2,11 +2,19 @@
 """
 Generate test recorder database with patterns for automation_suggestions analyzer.
 
-This creates a home-assistant_v2.db with historical state data that contains
-detectable patterns like:
+This creates a home-assistant_v2.db with historical state data that contains:
+
+HAPPY PATH (should be detected as automation candidates):
 - Kitchen light turned on around 7:00 AM every day for 14 days
+- Kitchen light turned off around 8:30 AM every day for 14 days
 - Bedroom light turned off around 10:30 PM every day for 14 days
 - Coffee maker turned on around 6:45 AM on weekdays for 14 days
+
+UNHAPPY PATH (should be FILTERED OUT by the analyzer):
+- Porch light: automation-triggered events (has context_parent_id)
+- Morning routine switch: script-triggered events (has context_parent_id)
+- Temperature sensor: system events without user context
+- Garage light: random/inconsistent timing (below consistency threshold)
 
 Run this script to regenerate the test database:
     python tests/e2e/scripts/generate_test_db.py
@@ -21,7 +29,10 @@ from pathlib import Path
 # Output path
 DB_PATH = Path(__file__).parent.parent / "initial_test_state" / "home-assistant_v2.db"
 
-# Test patterns to create
+# ============================================================================
+# HAPPY PATH PATTERNS - Manual user actions with consistent timing
+# These SHOULD be detected as automation candidates
+# ============================================================================
 PATTERNS = [
     {
         "entity_id": "light.kitchen",
@@ -54,6 +65,66 @@ PATTERNS = [
         "variance_minutes": 10,
         "days": 14,
         "weekdays_only": True,
+    },
+]
+
+# ============================================================================
+# UNHAPPY PATH PATTERNS - Events that should be FILTERED OUT
+# ============================================================================
+
+# Automation-triggered events - have context_parent_id set (indicates automation chain)
+# These simulate a sunset automation turning on the porch light
+AUTOMATION_TRIGGERED_PATTERNS = [
+    {
+        "entity_id": "light.porch",
+        "state": "on",
+        "base_time": "18:00:00",  # ~sunset time
+        "variance_minutes": 30,   # Sunset varies
+        "days": 14,
+        "weekdays_only": False,
+        "context_parent_id": "automation_sunset_001",  # Has parent = automation triggered
+        "context_user_id": None,  # No user involved
+    },
+]
+
+# Script-triggered events - have context_parent_id set
+# These simulate a morning routine script
+SCRIPT_TRIGGERED_PATTERNS = [
+    {
+        "entity_id": "switch.morning_routine",
+        "state": "on",
+        "base_time": "06:30:00",
+        "variance_minutes": 5,
+        "days": 14,
+        "weekdays_only": True,
+        "context_parent_id": "script_morning_routine_001",  # Has parent = script triggered
+        "context_user_id": None,  # No user involved
+    },
+]
+
+# System events without user context - no context_user_id
+# These simulate sensor updates from integrations
+SYSTEM_EVENT_PATTERNS = [
+    {
+        "entity_id": "sensor.temperature",
+        "state_values": ["20.5", "21.0", "21.5", "22.0", "22.5", "23.0"],  # Varying states
+        "hours_between": 1,  # Every hour
+        "days": 14,
+        "context_user_id": None,  # No user
+        "context_parent_id": None,  # No parent
+    },
+]
+
+# Random/inconsistent events - manual but no consistent pattern
+# These should fail the consistency threshold even though they're manual
+INCONSISTENT_PATTERNS = [
+    {
+        "entity_id": "light.garage",
+        "state": "on",
+        "days": 14,
+        "events_per_day": 2,  # Random times throughout the day
+        "context_user_id": "e2e_test_user_id_1234567890",  # Manual action
+        "context_parent_id": None,
     },
 ]
 
