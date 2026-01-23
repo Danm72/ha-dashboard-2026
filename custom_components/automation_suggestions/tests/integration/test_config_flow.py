@@ -59,6 +59,26 @@ class TestConfigFlow:
         assert result["type"] == FlowResultType.ABORT
         assert result["reason"] == "already_configured"
 
+    @pytest.mark.asyncio
+    async def test_consistency_threshold_below_half(self, hass):
+        """Test that consistency threshold below 0.5 can be configured."""
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                CONF_ANALYSIS_INTERVAL: 7,
+                CONF_LOOKBACK_DAYS: 14,
+                CONF_MIN_OCCURRENCES: 2,
+                CONF_CONSISTENCY_THRESHOLD: 0.30,
+            },
+        )
+
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["data"][CONF_CONSISTENCY_THRESHOLD] == 0.30
+
 
 class TestOptionsFlow:
     """Test the options flow."""

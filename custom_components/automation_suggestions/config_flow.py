@@ -72,7 +72,7 @@ def get_config_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
                 default=defaults.get(CONF_CONSISTENCY_THRESHOLD, DEFAULT_CONSISTENCY_THRESHOLD),
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
-                    min=0.5,
+                    min=0.1,
                     max=1.0,
                     step=0.05,
                     mode=selector.NumberSelectorMode.SLIDER,
