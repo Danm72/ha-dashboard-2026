@@ -1,5 +1,7 @@
 """Integration test fixtures using pytest-homeassistant-custom-component."""
 
+pytest_plugins = ["pytest_homeassistant_custom_component"]
+
 import pytest
 from unittest.mock import AsyncMock, patch
 
@@ -13,7 +15,6 @@ from custom_components.automation_suggestions.const import (
     CONF_CONSISTENCY_THRESHOLD,
 )
 
-# pytest_plugins moved to root conftest.py
 
 
 @pytest.fixture

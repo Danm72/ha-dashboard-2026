@@ -566,7 +566,7 @@ async def analyze_patterns_async(
     """Analyze patterns asynchronously using Home Assistant APIs.
 
     This is the main entry point for the integration to analyze patterns.
-    It queries the logbook API for state changes with context information
+    It queries the logbook for state changes with context information
     and identifies candidates for automation.
 
     Args:
@@ -580,7 +580,6 @@ async def analyze_patterns_async(
         List of Suggestion objects, filtered to exclude dismissed ones.
     """
     from homeassistant.util import dt as dt_util
-    from aiohttp import ClientSession
 
     end_time = dt_util.utcnow()
     start_time = end_time - timedelta(days=lookback_days)
@@ -591,80 +590,58 @@ async def analyze_patterns_async(
         end_time.isoformat(),
     )
 
-    # Query logbook API which has context_user_id information
-    # Use internal API endpoint
+    # Try to use internal logbook module for context_user_id data
+    entries: list[dict[str, Any]] = []
+
     try:
-        from homeassistant.helpers.aiohttp_client import async_get_clientsession
+        # Import logbook internals
+        from homeassistant.components.logbook import (
+            async_log_entries,
+        )
 
-        session = async_get_clientsession(hass)
+        # Get logbook entries using the internal async function
+        logbook_entries = await async_log_entries(
+            hass,
+            start_time,
+            end_time,
+            None,  # entity_ids - None means all
+            None,  # filters
+            None,  # context_id
+        )
 
-        # Get the internal API URL
-        base_url = f"http://127.0.0.1:{hass.http.server_port}"
+        # Convert logbook entries to our format
+        for entry in logbook_entries:
+            entries.append({
+                "entity_id": entry.get("entity_id", ""),
+                "state": entry.get("state", ""),
+                "when": entry.get("when"),
+                "context_user_id": entry.get("context_user_id"),
+                "context_event_type": entry.get("context_event_type"),
+                "context_domain": entry.get("context_domain"),
+            })
 
-        # Get a long-lived access token or use internal auth
-        # For internal requests, we can use the supervisor token if available
-        import os
-        token = os.environ.get("SUPERVISOR_TOKEN")
+        _LOGGER.debug("Retrieved %d logbook entries via internal API", len(entries))
 
-        if not token:
-            # Try to create a temporary token for internal use
-            from homeassistant.auth.models import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN
-            try:
-                # Get the owner user
-                owner = await hass.auth.async_get_owner()
-                if owner:
-                    # Create a refresh token and access token
-                    refresh_token = await hass.auth.async_create_refresh_token(
-                        owner,
-                        client_name="Automation Suggestions Internal",
-                        token_type=TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN,
-                        access_token_expiration=timedelta(minutes=5),
-                    )
-                    token = hass.auth.async_create_access_token(refresh_token)
-            except Exception as auth_err:
-                _LOGGER.debug("Could not create internal token: %s", auth_err)
-
-        if not token:
-            _LOGGER.warning(
-                "No authentication token available for logbook API. "
-                "Falling back to state history (context info may be limited)."
-            )
-            return await _analyze_via_state_history(
-                hass, start_time, end_time, min_occurrences,
-                consistency_threshold, dismissed_suggestions
-            )
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        }
-
-        # Query logbook API
-        start_str = start_time.isoformat()
-        end_str = end_time.isoformat()
-        url = f"{base_url}/api/logbook/{start_str}"
-        params = {"end_time": end_str}
-
-        async with session.get(url, headers=headers, params=params, timeout=60) as response:
-            if response.status != 200:
-                _LOGGER.warning(
-                    "Logbook API returned status %s, falling back to state history",
-                    response.status
-                )
-                return await _analyze_via_state_history(
-                    hass, start_time, end_time, min_occurrences,
-                    consistency_threshold, dismissed_suggestions
-                )
-            entries = await response.json()
-
+    except ImportError as ie:
+        _LOGGER.debug("Logbook async_log_entries not available: %s", ie)
+        # Fall back to state history
+        return await _analyze_via_state_history(
+            hass, start_time, end_time, min_occurrences,
+            consistency_threshold, dismissed_suggestions
+        )
     except Exception as err:
-        _LOGGER.warning("Error querying logbook API: %s, falling back to state history", err)
+        _LOGGER.warning("Error querying logbook: %s, falling back to state history", err)
         return await _analyze_via_state_history(
             hass, start_time, end_time, min_occurrences,
             consistency_threshold, dismissed_suggestions
         )
 
-    _LOGGER.debug("Retrieved %d logbook entries", len(entries))
+    if not entries:
+        _LOGGER.debug("No logbook entries found, trying state history fallback")
+        return await _analyze_via_state_history(
+            hass, start_time, end_time, min_occurrences,
+            consistency_threshold, dismissed_suggestions
+        )
 
     # Run the analysis in executor (CPU-bound work)
     suggestions = await hass.async_add_executor_job(

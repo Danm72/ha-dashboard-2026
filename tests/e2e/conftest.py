@@ -16,13 +16,8 @@ import time
 from pathlib import Path
 
 import pytest
-import pytest_socket
 import requests
 from testcontainers.core.container import DockerContainer
-
-# Enable socket access IMMEDIATELY at import time for Docker communication
-# This must happen before any fixtures are collected
-pytest_socket.enable_socket()
 
 logger = logging.getLogger(__name__)
 
