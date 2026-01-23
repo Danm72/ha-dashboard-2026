@@ -103,33 +103,52 @@ class TestNoneTypeBugFix:
 # =============================================================================
 
 class TestIsManualAction:
-    """Tests for the is_manual_action function."""
+    """Tests for the is_manual_action function.
 
-    def test_returns_false_when_no_context_user_id(self):
-        """Should return False when context_user_id is missing."""
+    Uses exclusion-based logic: an action is considered manual unless
+    we can prove it was automated. This catches physical button presses,
+    Zigbee/Z-Wave triggers, third-party apps, and voice assistants.
+    """
+
+    # -------------------------------------------------------------------------
+    # Physical trigger tests (no context_user_id, no automation context)
+    # -------------------------------------------------------------------------
+
+    def test_physical_switch_trigger_returns_true(self):
+        """Physical switch with state but no context_user_id should be manual."""
+        entry = {
+            "entity_id": "switch.living_room",
+            "state": "on",
+        }
+        assert is_manual_action(entry) is True
+
+    def test_zigbee_button_press_returns_true(self):
+        """Zigbee button press with state but no context_user_id should be manual."""
+        entry = {
+            "entity_id": "light.bedroom",
+            "state": "on",
+            # No context_user_id - typical for Zigbee/Z-Wave triggers
+        }
+        assert is_manual_action(entry) is True
+
+    def test_physical_trigger_without_state_returns_false(self):
+        """Entry without state (just an event) should return False."""
         entry = {
             "entity_id": "light.living_room",
+            # No state - not a state change
+        }
+        assert is_manual_action(entry) is False
+
+    def test_physical_trigger_without_entity_id_returns_false(self):
+        """Entry without entity_id should return False."""
+        entry = {
             "state": "on",
         }
         assert is_manual_action(entry) is False
 
-    def test_returns_false_when_context_user_id_is_none(self):
-        """Should return False when context_user_id is None."""
-        entry = {
-            "entity_id": "light.living_room",
-            "state": "on",
-            "context_user_id": None,
-        }
-        assert is_manual_action(entry) is False
-
-    def test_returns_false_when_context_user_id_is_empty(self):
-        """Should return False when context_user_id is empty string."""
-        entry = {
-            "entity_id": "light.living_room",
-            "state": "on",
-            "context_user_id": "",
-        }
-        assert is_manual_action(entry) is False
+    # -------------------------------------------------------------------------
+    # Automation exclusion tests
+    # -------------------------------------------------------------------------
 
     def test_returns_false_when_automation_triggered(self):
         """Should return False when context_event_type is automation_triggered."""
@@ -161,6 +180,59 @@ class TestIsManualAction:
         }
         assert is_manual_action(entry) is False
 
+    # -------------------------------------------------------------------------
+    # Source-based automation exclusion tests
+    # -------------------------------------------------------------------------
+
+    def test_returns_false_for_time_pattern_source(self):
+        """Should return False when source indicates time pattern trigger."""
+        entry = {
+            "entity_id": "light.living_room",
+            "state": "on",
+            "source": "triggered by time pattern",
+        }
+        assert is_manual_action(entry) is False
+
+    def test_returns_false_for_state_of_source(self):
+        """Should return False when source indicates state-based trigger."""
+        entry = {
+            "entity_id": "light.living_room",
+            "state": "on",
+            "source": "state of binary_sensor.motion",
+        }
+        assert is_manual_action(entry) is False
+
+    def test_returns_false_for_time_change_source(self):
+        """Should return False when source indicates time change trigger."""
+        entry = {
+            "entity_id": "light.porch",
+            "state": "on",
+            "source": "time change",
+        }
+        assert is_manual_action(entry) is False
+
+    def test_returns_false_for_template_source(self):
+        """Should return False when source indicates template trigger."""
+        entry = {
+            "entity_id": "light.living_room",
+            "state": "on",
+            "source": "triggered via template",
+        }
+        assert is_manual_action(entry) is False
+
+    def test_returns_false_for_ha_starting_source(self):
+        """Should return False when source indicates HA startup."""
+        entry = {
+            "entity_id": "light.living_room",
+            "state": "on",
+            "source": "Home Assistant starting",
+        }
+        assert is_manual_action(entry) is False
+
+    # -------------------------------------------------------------------------
+    # User-triggered tests (with context_user_id)
+    # -------------------------------------------------------------------------
+
     def test_returns_true_for_valid_manual_action(self):
         """Should return True for a valid manual action with user_id and no automation context."""
         entry = {
@@ -187,6 +259,39 @@ class TestIsManualAction:
             "state": "on",
             "context_user_id": "user123",
             "context_event_type": "call_service",
+        }
+        assert is_manual_action(entry) is True
+
+    # -------------------------------------------------------------------------
+    # Edge case tests
+    # -------------------------------------------------------------------------
+
+    def test_returns_false_when_context_user_id_is_empty(self):
+        """Should return False when context_user_id is empty string (no state change proof)."""
+        entry = {
+            "entity_id": "light.living_room",
+            "state": "on",
+            "context_user_id": "",
+        }
+        # Empty string is falsy, but we still have entity_id and state
+        # so it should be considered a potential physical trigger
+        assert is_manual_action(entry) is True
+
+    def test_context_user_id_as_integer(self):
+        """context_user_id as integer instead of string should still be truthy."""
+        entry = {
+            "entity_id": "light.living_room",
+            "state": "on",
+            "context_user_id": 12345,
+        }
+        assert is_manual_action(entry) is True
+
+    def test_non_automation_source_returns_true(self):
+        """Source that doesn't match automation patterns should return True."""
+        entry = {
+            "entity_id": "light.living_room",
+            "state": "on",
+            "source": "user interaction",
         }
         assert is_manual_action(entry) is True
 
@@ -772,14 +877,15 @@ class TestMalformedLogbookEntries:
         assert result is None
 
     def test_entry_with_no_context_user_id_key(self):
-        """Entry missing context_user_id key should not be manual action."""
+        """Entry missing context_user_id key but with entity_id and state should be manual."""
         entry = {
             "entity_id": "light.living_room",
             "state": "on",
             "when": "2025-01-20T10:00:00Z",
         }
         result = is_manual_action(entry)
-        assert result is False
+        # With exclusion-based logic, this is considered a physical trigger
+        assert result is True
 
     # -------------------------------------------------------------------------
     # 8.2 Wrong Data Types
@@ -1020,7 +1126,8 @@ class TestMalformedLogbookEntries:
         }
 
         result_manual = is_manual_action(entry)
-        assert result_manual is False  # Empty context_user_id is falsy
+        # Empty entity_id means no valid entity, so returns False
+        assert result_manual is False
 
         result_action = extract_action_from_entry(entry)
         assert result_action == "unknown"

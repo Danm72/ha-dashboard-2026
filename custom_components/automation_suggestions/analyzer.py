@@ -89,23 +89,52 @@ class Suggestion:
 def is_manual_action(entry: dict[str, Any]) -> bool:
     """Check if a logbook entry represents a manual user action.
 
+    Uses exclusion-based logic: an action is considered manual unless
+    we can prove it was automated. This catches physical button presses,
+    Zigbee triggers, and other non-automation sources.
+
     Args:
         entry: A logbook entry dictionary from Home Assistant.
 
     Returns:
         True if the action was triggered by a user manually, False otherwise.
     """
-    # Must have a context_user_id to be user-triggered
-    if not entry.get("context_user_id"):
-        return False
-
     # Exclude automation-triggered actions
     if entry.get("context_event_type") == "automation_triggered":
         return False
 
-    # Exclude internal/system events
+    # Exclude actions triggered by automations or scripts
     context_domain = entry.get("context_domain", "")
     if context_domain in ("automation", "script"):
+        return False
+
+    # Exclude if source indicates automation
+    source = entry.get("source", "")
+    if source:
+        # Common automation source patterns
+        automation_sources = [
+            "time pattern",
+            "state of ",
+            "time change",
+            "via template",
+            "Home Assistant starting",
+        ]
+        for pattern in automation_sources:
+            if pattern in source:
+                return False
+
+    # If we have context_user_id, it's definitely manual
+    if entry.get("context_user_id"):
+        return True
+
+    # For entries without context_user_id, check if it's a tracked domain
+    # and has no automation indicators - likely a physical trigger
+    entity_id = str(entry.get("entity_id") or "")
+    if not entity_id:
+        return False
+
+    # Must be an actual state change (not just an event)
+    if not entry.get("state"):
         return False
 
     return True
