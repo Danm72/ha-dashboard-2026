@@ -20,9 +20,9 @@ Run this script to regenerate the test database:
     python tests/e2e/scripts/generate_test_db.py
 """
 
-import sqlite3
 import json
 import random
+import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 

@@ -30,24 +30,63 @@ A custom Home Assistant integration that analyzes your manual actions from the l
 |--------|---------|-------------|
 | Analysis Interval | 7 days | How often to run pattern analysis |
 | Lookback Days | 14 | How far back to analyze history |
-| Min Occurrences | 5 | Minimum times an action must occur to be suggested |
-| Consistency Threshold | 70% | How consistent the timing must be |
+| Min Occurrences | 2 | Minimum times an action must occur to be suggested |
+| Consistency Threshold | 30% | How consistent the timing must be |
 
-## Entities Created
+## Finding Your Suggestions
+
+### Quick Start
+
+1. **Run your first analysis**: Go to **Developer Tools → Services** and call `automation_suggestions.analyze_now`
+2. **View results**: Go to **Developer Tools → States** and search for `sensor.automation_suggestions_top`
+3. **Check attributes**: Click the sensor to see the `suggestions` attribute with your top 5 suggestions
+
+### Entities Created
 
 | Entity | Type | Description |
 |--------|------|-------------|
 | `sensor.automation_suggestions_count` | Sensor | Number of pending suggestions |
-| `sensor.automation_suggestions_top` | Sensor | Top 5 suggestions in attributes |
-| `sensor.automation_suggestions_last_analysis` | Sensor | Timestamp of last analysis |
+| `sensor.automation_suggestions_top` | Sensor | Top 5 suggestions with details in attributes |
+| `sensor.automation_suggestions_last_analysis` | Sensor | Timestamp of last analysis run |
 | `binary_sensor.automation_suggestions_available` | Binary Sensor | On when suggestions exist |
+
+### Understanding Suggestion Output
+
+Each suggestion in `sensor.automation_suggestions_top` attributes includes:
+
+| Field | Example | Description |
+|-------|---------|-------------|
+| `description` | "Turn on light.kitchen around 07:00 (85% consistent, seen 12 times)" | Human-readable summary |
+| `entity_id` | `light.kitchen` | The entity you've been controlling manually |
+| `action` | `turn_on` | What action you perform |
+| `suggested_time` | `07:00` | When you typically do this |
+| `consistency_score` | `0.85` | How reliably you do this at this time (0-1) |
+| `occurrence_count` | `12` | Total times this pattern was detected |
+| `id` | `light_kitchen_turn_on_07_00` | Unique ID (use with dismiss service) |
 
 ## Services
 
-| Service | Description |
-|---------|-------------|
-| `automation_suggestions.analyze_now` | Trigger immediate pattern analysis |
-| `automation_suggestions.dismiss` | Dismiss a suggestion by ID |
+### `automation_suggestions.analyze_now`
+
+Trigger immediate pattern analysis instead of waiting for the scheduled interval.
+
+**Use cases:**
+- After first installation to see initial suggestions
+- After adjusting configuration options
+- To refresh suggestions after dismissing some
+
+**How to call:** Developer Tools → Services → `automation_suggestions.analyze_now` → Call Service
+
+### `automation_suggestions.dismiss`
+
+Permanently hide a suggestion you don't want to see again.
+
+**Parameters:**
+- `suggestion_id` (required): The unique ID from the suggestion's `id` field
+
+**Example:** To dismiss `light_kitchen_turn_on_07_00`, call the service with that ID.
+
+**Note:** Dismissed suggestions persist across restarts and won't reappear.
 
 ## Background
 

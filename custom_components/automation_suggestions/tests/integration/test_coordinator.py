@@ -1,15 +1,15 @@
 """Tests for the data update coordinator."""
 
-import pytest
-from unittest.mock import AsyncMock, patch
 from datetime import timedelta
+from unittest.mock import AsyncMock, patch
 
+import pytest
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
+from custom_components.automation_suggestions.const import DOMAIN
 from custom_components.automation_suggestions.coordinator import (
     AutomationSuggestionsCoordinator,
 )
-from custom_components.automation_suggestions.const import DOMAIN
 
 
 class TestCoordinator:

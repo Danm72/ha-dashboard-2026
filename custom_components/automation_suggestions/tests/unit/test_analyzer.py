@@ -15,19 +15,20 @@ Covers:
 8. Malformed logbook entries handling
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
 
 # Import the module under test
 from custom_components.automation_suggestions.analyzer import (
-    is_manual_action,
+    Suggestion,
     extract_action_from_entry,
-    parse_timestamp,
-    get_time_window,
-    format_time_range,
     find_automation_candidates,
+    format_time_range,
+    get_time_window,
+    is_manual_action,
+    parse_timestamp,
 )
-
 
 # =============================================================================
 # 1. NoneType Bug Fix Tests (CRITICAL)
@@ -96,6 +97,184 @@ class TestNoneTypeBugFix:
 
         # Only the valid light entity should be processed
         assert processed == ["light.living_room"]
+
+
+# =============================================================================
+# 1.5 Suggestion Description Tests
+# =============================================================================
+
+class TestSuggestionDescription:
+    """Tests for the Suggestion.description property."""
+
+    def test_description_turn_on_action(self):
+        """Test description for turn_on action."""
+        suggestion = Suggestion(
+            id="light_living_room_turn_on_07_00",
+            entity_id="light.living_room",
+            action="turn_on",
+            suggested_time="07:00",
+            time_window_start="07:00",
+            time_window_end="07:29",
+            consistency_score=0.85,
+            occurrence_count=12,
+            last_occurrence="2026-01-22T07:15:00+00:00",
+        )
+        assert suggestion.description == (
+            "Turn on light.living_room around 07:00 (85% consistent, seen 12 times)"
+        )
+
+    def test_description_turn_off_action(self):
+        """Test description for turn_off action."""
+        suggestion = Suggestion(
+            id="switch_bedroom_turn_off_22_00",
+            entity_id="switch.bedroom",
+            action="turn_off",
+            suggested_time="22:00",
+            time_window_start="22:00",
+            time_window_end="22:29",
+            consistency_score=0.90,
+            occurrence_count=8,
+            last_occurrence="2026-01-22T22:10:00+00:00",
+        )
+        assert suggestion.description == (
+            "Turn off switch.bedroom around 22:00 (90% consistent, seen 8 times)"
+        )
+
+    def test_description_set_action(self):
+        """Test description for set_* action."""
+        suggestion = Suggestion(
+            id="climate_hvac_set_cool_18_00",
+            entity_id="climate.hvac",
+            action="set_cool",
+            suggested_time="18:00",
+            time_window_start="18:00",
+            time_window_end="18:29",
+            consistency_score=0.75,
+            occurrence_count=6,
+            last_occurrence="2026-01-22T18:05:00+00:00",
+        )
+        assert "Set to cool" in suggestion.description
+        assert "climate.hvac" in suggestion.description
+        assert "75%" in suggestion.description
+
+    def test_description_activated_action(self):
+        """Test description for activated action (scenes)."""
+        suggestion = Suggestion(
+            id="scene_movie_time_activated_20_00",
+            entity_id="scene.movie_time",
+            action="activated",
+            suggested_time="20:00",
+            time_window_start="20:00",
+            time_window_end="20:29",
+            consistency_score=0.80,
+            occurrence_count=10,
+            last_occurrence="2026-01-22T20:00:00+00:00",
+        )
+        assert suggestion.description == (
+            "Activate scene.movie_time around 20:00 (80% consistent, seen 10 times)"
+        )
+
+    def test_description_executed_action(self):
+        """Test description for executed action (scripts)."""
+        suggestion = Suggestion(
+            id="script_morning_routine_executed_06_30",
+            entity_id="script.morning_routine",
+            action="executed",
+            suggested_time="06:30",
+            time_window_start="06:30",
+            time_window_end="06:59",
+            consistency_score=0.95,
+            occurrence_count=14,
+            last_occurrence="2026-01-22T06:35:00+00:00",
+        )
+        assert suggestion.description == (
+            "Execute script.morning_routine around 06:30 (95% consistent, seen 14 times)"
+        )
+
+    def test_description_pressed_action(self):
+        """Test description for pressed action (input_button)."""
+        suggestion = Suggestion(
+            id="input_button_doorbell_pressed_12_00",
+            entity_id="input_button.doorbell",
+            action="pressed",
+            suggested_time="12:00",
+            time_window_start="12:00",
+            time_window_end="12:29",
+            consistency_score=0.60,
+            occurrence_count=5,
+            last_occurrence="2026-01-22T12:15:00+00:00",
+        )
+        assert suggestion.description == (
+            "Press input_button.doorbell around 12:00 (60% consistent, seen 5 times)"
+        )
+
+    def test_description_changed_action(self):
+        """Test description for changed action."""
+        suggestion = Suggestion(
+            id="input_number_volume_changed_19_00",
+            entity_id="input_number.volume",
+            action="changed",
+            suggested_time="19:00",
+            time_window_start="19:00",
+            time_window_end="19:29",
+            consistency_score=0.70,
+            occurrence_count=7,
+            last_occurrence="2026-01-22T19:10:00+00:00",
+        )
+        assert suggestion.description == (
+            "Change input_number.volume around 19:00 (70% consistent, seen 7 times)"
+        )
+
+    def test_description_unknown_action_fallback(self):
+        """Test description for unknown action uses fallback formatting."""
+        suggestion = Suggestion(
+            id="sensor_test_custom_action_10_00",
+            entity_id="sensor.test",
+            action="custom_action",
+            suggested_time="10:00",
+            time_window_start="10:00",
+            time_window_end="10:29",
+            consistency_score=0.50,
+            occurrence_count=4,
+            last_occurrence="2026-01-22T10:00:00+00:00",
+        )
+        # Fallback: action.replace("_", " ").capitalize() -> "Custom action"
+        assert "Custom action" in suggestion.description
+
+    def test_to_dict_includes_description(self):
+        """Test that to_dict includes the description field."""
+        suggestion = Suggestion(
+            id="light_test_turn_on_08_00",
+            entity_id="light.test",
+            action="turn_on",
+            suggested_time="08:00",
+            time_window_start="08:00",
+            time_window_end="08:29",
+            consistency_score=0.85,
+            occurrence_count=10,
+            last_occurrence="2026-01-22T08:00:00+00:00",
+        )
+        result = suggestion.to_dict()
+        assert "description" in result
+        assert result["description"] == suggestion.description
+        assert result["description"] == (
+            "Turn on light.test around 08:00 (85% consistent, seen 10 times)"
+        )
+
+    def test_description_rounds_consistency_score(self):
+        """Test that consistency score is rounded to integer percentage."""
+        suggestion = Suggestion(
+            id="light_test_turn_on_08_00",
+            entity_id="light.test",
+            action="turn_on",
+            suggested_time="08:00",
+            time_window_start="08:00",
+            time_window_end="08:29",
+            consistency_score=0.857,  # Should round to 85%
+            occurrence_count=10,
+            last_occurrence="2026-01-22T08:00:00+00:00",
+        )
+        assert "85%" in suggestion.description
 
 
 # =============================================================================

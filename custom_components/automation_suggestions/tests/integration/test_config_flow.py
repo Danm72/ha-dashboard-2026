@@ -5,11 +5,11 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.automation_suggestions.const import (
-    DOMAIN,
     CONF_ANALYSIS_INTERVAL,
+    CONF_CONSISTENCY_THRESHOLD,
     CONF_LOOKBACK_DAYS,
     CONF_MIN_OCCURRENCES,
-    CONF_CONSISTENCY_THRESHOLD,
+    DOMAIN,
 )
 
 

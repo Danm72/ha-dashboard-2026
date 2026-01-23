@@ -2,7 +2,6 @@
 
 import pytest
 
-
 from custom_components.automation_suggestions.const import DOMAIN
 
 

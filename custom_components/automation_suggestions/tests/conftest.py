@@ -2,13 +2,13 @@
 
 import pytest
 
+from custom_components.automation_suggestions.analyzer import Suggestion
 from custom_components.automation_suggestions.const import (
     CONF_ANALYSIS_INTERVAL,
+    CONF_CONSISTENCY_THRESHOLD,
     CONF_LOOKBACK_DAYS,
     CONF_MIN_OCCURRENCES,
-    CONF_CONSISTENCY_THRESHOLD,
 )
-from custom_components.automation_suggestions.analyzer import Suggestion
 
 
 @pytest.fixture
