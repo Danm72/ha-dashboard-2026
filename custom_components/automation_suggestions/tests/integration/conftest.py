@@ -109,3 +109,24 @@ def mock_store():
         mock_store.async_save = AsyncMock()
         mock_store_class.return_value = mock_store
         yield mock_store
+
+
+@pytest.fixture(autouse=True)
+def auto_enable_custom_integrations(enable_custom_integrations):
+    """Automatically enable custom integrations for all tests in this module."""
+    yield
+
+
+@pytest.fixture(autouse=True)
+def mock_recorder_dependency(hass):
+    """Mock the recorder integration to satisfy dependencies."""
+    hass.data["recorder_instance"] = AsyncMock()
+    # Mark recorder as loaded
+    hass.config.components.add("recorder")
+
+
+@pytest.fixture(autouse=True)
+def mock_logbook_dependency(hass):
+    """Mock the logbook integration to satisfy dependencies."""
+    # Mark logbook as loaded
+    hass.config.components.add("logbook")

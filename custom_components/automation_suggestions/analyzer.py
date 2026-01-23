@@ -472,6 +472,86 @@ def analyze_logbook_entries(
 
 
 # -----------------------------------------------------------------------------
+# Fallback: State history analysis (limited context info)
+# -----------------------------------------------------------------------------
+
+
+async def _analyze_via_state_history(
+    hass: "HomeAssistant",
+    start_time: datetime,
+    end_time: datetime,
+    min_occurrences: int,
+    consistency_threshold: float,
+    dismissed_suggestions: set[str],
+) -> list[Suggestion]:
+    """Fallback analysis using state history (limited context info).
+
+    This method uses get_significant_states which doesn't have context_user_id,
+    so it treats ALL state changes as potential manual actions. Less accurate
+    but works without API access.
+    """
+    from homeassistant.components.recorder import get_instance
+    from homeassistant.components.recorder.history import get_significant_states
+
+    # Get entity IDs for tracked domains
+    tracked_entity_ids: list[str] = []
+    for state in hass.states.async_all():
+        domain = state.entity_id.split(".")[0]
+        if domain in TRACKED_DOMAINS:
+            tracked_entity_ids.append(state.entity_id)
+
+    if not tracked_entity_ids:
+        _LOGGER.debug("No entities found in tracked domains")
+        return []
+
+    try:
+        states_by_entity = await get_instance(hass).async_add_executor_job(
+            get_significant_states,
+            hass,
+            start_time,
+            end_time,
+            tracked_entity_ids,
+            None,  # filters
+            True,  # include_start_time_state
+            True,  # significant_changes_only
+            False,  # minimal_response
+        )
+    except Exception as err:
+        _LOGGER.error("Error querying state history: %s", err)
+        return []
+
+    # Convert to entries - mark all as having context_user_id since we can't tell
+    entries: list[dict[str, Any]] = []
+    for entity_id, states in states_by_entity.items():
+        for state in states:
+            entry = {
+                "entity_id": entity_id,
+                "state": state.state,
+                "when": state.last_changed.isoformat() if state.last_changed else None,
+                "context_user_id": "unknown",  # Assume manual since we can't tell
+                "context_event_type": None,
+                "context_domain": None,
+            }
+            # If there's a parent context, mark as potentially automated
+            if state.context and state.context.parent_id:
+                entry["context_user_id"] = None  # Skip these
+            entries.append(entry)
+
+    _LOGGER.debug("Collected %d state entries for fallback analysis", len(entries))
+
+    suggestions = await hass.async_add_executor_job(
+        analyze_logbook_entries,
+        entries,
+        TRACKED_DOMAINS,
+        min_occurrences,
+        consistency_threshold,
+        DEFAULT_TIME_WINDOW_MINUTES,
+    )
+
+    return [s for s in suggestions if s.id not in dismissed_suggestions]
+
+
+# -----------------------------------------------------------------------------
 # Async entry point for Home Assistant
 # -----------------------------------------------------------------------------
 
@@ -486,8 +566,8 @@ async def analyze_patterns_async(
     """Analyze patterns asynchronously using Home Assistant APIs.
 
     This is the main entry point for the integration to analyze patterns.
-    It queries the recorder/logbook for state changes and identifies
-    candidates for automation.
+    It queries the logbook API for state changes with context information
+    and identifies candidates for automation.
 
     Args:
         hass: Home Assistant instance.
@@ -499,9 +579,8 @@ async def analyze_patterns_async(
     Returns:
         List of Suggestion objects, filtered to exclude dismissed ones.
     """
-    from homeassistant.components.recorder import get_instance
-    from homeassistant.components.recorder.history import get_significant_states
     from homeassistant.util import dt as dt_util
+    from aiohttp import ClientSession
 
     end_time = dt_util.utcnow()
     start_time = end_time - timedelta(days=lookback_days)
@@ -512,64 +591,71 @@ async def analyze_patterns_async(
         end_time.isoformat(),
     )
 
-    # Get entity IDs for tracked domains
-    tracked_entity_ids: list[str] = []
-    for state in hass.states.async_all():
-        domain = state.entity_id.split(".")[0]
-        if domain in TRACKED_DOMAINS:
-            tracked_entity_ids.append(state.entity_id)
-
-    if not tracked_entity_ids:
-        _LOGGER.debug("No entities found in tracked domains")
-        return []
-
-    _LOGGER.debug("Found %d entities in tracked domains", len(tracked_entity_ids))
-
-    # Query state history using recorder (async API)
+    # Query logbook API which has context_user_id information
+    # Use internal API endpoint
     try:
-        states_by_entity = await get_instance(hass).async_add_executor_job(
-            get_significant_states,
-            hass,
-            start_time,
-            end_time,
-            tracked_entity_ids,
-            None,  # filters
-            True,  # include_start_time_state
-            True,  # significant_changes_only
-            False,  # minimal_response - must be False to get State objects
-        )
+        from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+        session = async_get_clientsession(hass)
+
+        # Get the internal API URL
+        base_url = f"http://127.0.0.1:{hass.http.server_port}"
+
+        # Get a long-lived access token or use internal auth
+        # For internal requests, we can use the supervisor token if available
+        import os
+        token = os.environ.get("SUPERVISOR_TOKEN")
+
+        if not token:
+            # Try to create a temporary token for internal use
+            from homeassistant.auth.models import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN
+            try:
+                # Get the owner user
+                owner = await hass.auth.async_get_owner()
+                if owner:
+                    # Create a refresh token and access token
+                    refresh_token = await hass.auth.async_create_refresh_token(
+                        owner,
+                        client_name="Automation Suggestions Internal",
+                        token_type=TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN,
+                        access_token_expiration=timedelta(minutes=5),
+                    )
+                    token = hass.auth.async_create_access_token(refresh_token)
+            except Exception as auth_err:
+                _LOGGER.debug("Could not create internal token: %s", auth_err)
+
+        if not token:
+            _LOGGER.warning(
+                "No authentication token available for logbook API. "
+                "Falling back to state history (context info may be limited)."
+            )
+            return await _analyze_via_state_history(
+                hass, start_time, end_time, min_occurrences,
+                consistency_threshold, dismissed_suggestions
+            )
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+
+        # Query logbook API
+        start_str = start_time.isoformat()
+        end_str = end_time.isoformat()
+        url = f"{base_url}/api/logbook/{start_str}"
+        params = {"end_time": end_str}
+
+        async with session.get(url, headers=headers, params=params, timeout=60) as response:
+            if response.status != 200:
+                _LOGGER.error("Logbook API returned status %s", response.status)
+                return []
+            entries = await response.json()
+
     except Exception as err:
-        _LOGGER.error("Error querying state history: %s", err)
+        _LOGGER.error("Error querying logbook API: %s", err)
         return []
 
-    # Convert state history to logbook-like entries
-    entries: list[dict[str, Any]] = []
-
-    for entity_id, states in states_by_entity.items():
-        for state in states:
-            # Convert State object to entry dict
-            entry = {
-                "entity_id": entity_id,
-                "state": state.state,
-                "when": state.last_changed.isoformat() if state.last_changed else None,
-                "context_user_id": state.context.user_id if state.context else None,
-                "context_event_type": None,
-                "context_domain": None,
-            }
-
-            # Check context for automation/script triggers
-            if state.context:
-                # Try to extract context information
-                parent_id = state.context.parent_id
-                if parent_id:
-                    # If there's a parent context, this was likely triggered by something
-                    # We'll mark it as potentially automation-triggered
-                    # This is a heuristic - ideally we'd look up the parent context
-                    entry["context_domain"] = "unknown"
-
-            entries.append(entry)
-
-    _LOGGER.debug("Collected %d state change entries for analysis", len(entries))
+    _LOGGER.debug("Retrieved %d logbook entries", len(entries))
 
     # Run the analysis in executor (CPU-bound work)
     suggestions = await hass.async_add_executor_job(

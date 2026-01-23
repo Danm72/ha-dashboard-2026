@@ -17,3 +17,13 @@ ignore = [
 [tool.ruff.lint.isort]
 force-single-line = false
 combine-as-imports = true
+
+[tool.pytest.ini_options]
+markers = [
+    "e2e: marks tests as end-to-end (deselect with '-m \"not e2e\"')",
+]
+testpaths = [
+    "tests",
+    "custom_components/automation_suggestions/tests",
+]
+asyncio_mode = "auto"
