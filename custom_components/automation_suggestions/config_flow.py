@@ -8,12 +8,15 @@ import voluptuous as vol
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
-    ConfigFlowResult,
     OptionsFlow,
 )
 from homeassistant.core import callback
-from homeassistant.helpers import selector
 
+# ConfigFlowResult was added in HA 2024.1, fall back to FlowResult for older versions
+try:
+    from homeassistant.config_entries import ConfigFlowResult
+except ImportError:
+    from homeassistant.data_entry_flow import FlowResult as ConfigFlowResult
 from .const import (
     CONF_ANALYSIS_INTERVAL,
     CONF_CONSISTENCY_THRESHOLD,
@@ -37,47 +40,19 @@ def get_config_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
             vol.Required(
                 CONF_ANALYSIS_INTERVAL,
                 default=defaults.get(CONF_ANALYSIS_INTERVAL, DEFAULT_ANALYSIS_INTERVAL),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=1,
-                    max=30,
-                    step=1,
-                    mode=selector.NumberSelectorMode.BOX,
-                ),
-            ),
+            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
             vol.Required(
                 CONF_LOOKBACK_DAYS,
                 default=defaults.get(CONF_LOOKBACK_DAYS, DEFAULT_LOOKBACK_DAYS),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=7,
-                    max=60,
-                    step=1,
-                    mode=selector.NumberSelectorMode.BOX,
-                ),
-            ),
+            ): vol.All(vol.Coerce(int), vol.Range(min=7, max=60)),
             vol.Required(
                 CONF_MIN_OCCURRENCES,
                 default=defaults.get(CONF_MIN_OCCURRENCES, DEFAULT_MIN_OCCURRENCES),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=2,
-                    max=20,
-                    step=1,
-                    mode=selector.NumberSelectorMode.BOX,
-                ),
-            ),
+            ): vol.All(vol.Coerce(int), vol.Range(min=2, max=20)),
             vol.Required(
                 CONF_CONSISTENCY_THRESHOLD,
                 default=defaults.get(CONF_CONSISTENCY_THRESHOLD, DEFAULT_CONSISTENCY_THRESHOLD),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0.0,
-                    max=1.0,
-                    step=0.05,
-                    mode=selector.NumberSelectorMode.SLIDER,
-                ),
-            ),
+            ): vol.All(vol.Coerce(float), vol.Range(min=0.5, max=1.0)),
         }
     )
 
