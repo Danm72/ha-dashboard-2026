@@ -11,6 +11,7 @@ from custom_components.automation_suggestions.const import DOMAIN
 class TestCountSensor:
     """Test the suggestions count sensor."""
 
+    @pytest.mark.asyncio
     async def test_count_sensor_state(self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions):
         """Test count sensor reflects suggestion count."""
         config_entry.add_to_hass(hass)
@@ -22,6 +23,7 @@ class TestCountSensor:
         assert state.state == "3"
         assert state.attributes.get("unit_of_measurement") == "suggestions"
 
+    @pytest.mark.asyncio
     async def test_count_sensor_zero_when_empty(self, hass, config_entry, mock_store, empty_suggestions):
         """Test count sensor is 0 when no suggestions."""
         config_entry.add_to_hass(hass)
@@ -42,6 +44,7 @@ class TestCountSensor:
 class TestTopSensor:
     """Test the top suggestions sensor."""
 
+    @pytest.mark.asyncio
     async def test_top_sensor_attributes(self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions):
         """Test top sensor has suggestions in attributes."""
         config_entry.add_to_hass(hass)
@@ -60,6 +63,7 @@ class TestTopSensor:
         assert "action" in first
         assert "consistency_score" in first
 
+    @pytest.mark.asyncio
     async def test_top_sensor_limits_to_five(self, hass, config_entry, mock_store):
         """Test top sensor limits to 5 suggestions."""
         from custom_components.automation_suggestions.analyzer import Suggestion
@@ -97,6 +101,7 @@ class TestTopSensor:
 class TestBinarySensor:
     """Test the availability binary sensor."""
 
+    @pytest.mark.asyncio
     async def test_binary_sensor_on_when_suggestions_exist(self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions):
         """Test binary sensor is on when suggestions exist."""
         config_entry.add_to_hass(hass)
@@ -107,6 +112,7 @@ class TestBinarySensor:
         assert state is not None
         assert state.state == "on"
 
+    @pytest.mark.asyncio
     async def test_binary_sensor_off_when_no_suggestions(self, hass, config_entry, mock_store, empty_suggestions):
         """Test binary sensor is off when no suggestions."""
         config_entry.add_to_hass(hass)
@@ -127,6 +133,7 @@ class TestBinarySensor:
 class TestLastAnalysisSensor:
     """Test the last analysis timestamp sensor."""
 
+    @pytest.mark.asyncio
     async def test_last_analysis_timestamp(self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions):
         """Test last analysis sensor shows timestamp."""
         config_entry.add_to_hass(hass)

@@ -13,6 +13,8 @@ from custom_components.automation_suggestions.const import (
     CONF_CONSISTENCY_THRESHOLD,
 )
 
+# pytest_plugins moved to root conftest.py
+
 
 @pytest.fixture
 def mock_config_data():

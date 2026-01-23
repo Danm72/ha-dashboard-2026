@@ -16,6 +16,7 @@ from custom_components.automation_suggestions.const import (
 class TestConfigFlow:
     """Test the config flow."""
 
+    @pytest.mark.asyncio
     async def test_flow_init(self, hass):
         """Test flow initialization shows user form."""
         result = await hass.config_entries.flow.async_init(
@@ -24,6 +25,7 @@ class TestConfigFlow:
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "user"
 
+    @pytest.mark.asyncio
     async def test_flow_user_step_success(self, hass):
         """Test successful config flow completion."""
         result = await hass.config_entries.flow.async_init(
@@ -45,6 +47,7 @@ class TestConfigFlow:
         assert result["data"][CONF_ANALYSIS_INTERVAL] == 7
         assert result["data"][CONF_LOOKBACK_DAYS] == 14
 
+    @pytest.mark.asyncio
     async def test_flow_already_configured(self, hass, config_entry):
         """Test we abort if already configured."""
         config_entry.add_to_hass(hass)
@@ -60,6 +63,7 @@ class TestConfigFlow:
 class TestOptionsFlow:
     """Test the options flow."""
 
+    @pytest.mark.asyncio
     async def test_options_flow_init(self, hass, config_entry, mock_analyzer, mock_store):
         """Test options flow shows init form."""
         config_entry.add_to_hass(hass)
@@ -70,6 +74,7 @@ class TestOptionsFlow:
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "init"
 
+    @pytest.mark.asyncio
     async def test_options_flow_update(self, hass, config_entry, mock_analyzer, mock_store):
         """Test options flow allows reconfiguration."""
         config_entry.add_to_hass(hass)

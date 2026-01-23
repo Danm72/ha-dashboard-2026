@@ -1082,6 +1082,8 @@ ha-dashboard-2026/
 
 This phase documents gaps identified by comparing the manual implementation against HA Core's official scaffold templates.
 
+**Scaffold Sample Location:** `homeassistant/components/sample_scaffold/` (generated via `python -m script.scaffold integration`)
+
 ### Scaffold Template References
 
 **Location in HA Core:** `script/scaffold/templates/`
@@ -1096,166 +1098,55 @@ This phase documents gaps identified by comparing the manual implementation agai
 | Test conftest | `config_flow/tests/conftest.py` | mock_setup_entry fixture |
 | Config flow tests | `config_flow/tests/test_config_flow.py` | Comprehensive flow tests |
 
-### Issues to Fix
+### Comparison Results (2026-01-23)
 
-#### 1. Missing `quality_scale.yaml` (Priority: Medium)
+#### ✅ COMPLIANT (5 items)
 
-**Status:** ❌ Missing
+| Item | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `quality_scale.yaml` | File exists with rule status | Exists with rules marked `done`/`exempt` | ✅ DONE |
+| `manifest.json` quality_scale | `"quality_scale": "bronze"` | Present | ✅ DONE |
+| `runtime_data` pattern | `entry.runtime_data = coordinator` | Uses `entry.runtime_data = coordinator` | ✅ DONE |
+| `PLATFORMS` enum | `list[Platform] = [Platform.SENSOR, ...]` | `list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]` | ✅ DONE |
+| `MINOR_VERSION` | `MINOR_VERSION = 1` | Present in config_flow.py | ✅ DONE |
 
-The scaffold creates this file to track Bronze rule compliance. Create:
+#### ❌ GAPS TO FIX (3 items)
 
-**File:** `custom_components/automation_suggestions/quality_scale.yaml`
-```yaml
-rules:
-  # Bronze
-  action-setup:
-    status: exempt
-    comment: Integration does not register custom actions.
-  appropriate-polling: done
-  brands: todo
-  common-modules: done
-  config-flow-test-coverage: todo
-  config-flow: done
-  dependency-transparency: done
-  docs-actions: todo
-  docs-high-level-description: todo
-  docs-installation-instructions: todo
-  docs-removal-instructions: todo
-  entity-event-setup:
-    status: exempt
-    comment: Integration uses coordinator pattern.
-  entity-unique-id: done
-  has-entity-name: todo
-  runtime-data: todo
-  test-before-configure:
-    status: exempt
-    comment: No external service to test during config.
-  test-before-setup:
-    status: exempt
-    comment: Relies on recorder which is already validated.
-  unique-config-entry: done
-```
-
-#### 2. Missing `quality_scale` in `manifest.json` (Priority: Medium)
-
-**Status:** ❌ Missing
-
-**Current manifest.json:**
-```json
-{
-  "domain": "automation_suggestions",
-  ...
-}
-```
-
-**Add this key:**
-```json
-"quality_scale": "bronze"
-```
-
-#### 3. Using `hass.data[DOMAIN]` Instead of `runtime_data` (Priority: High)
+##### 1. `strings.json` - Use Common Key References (Priority: Low)
 
 **Status:** ❌ Non-compliant
 
-Modern HA pattern uses `entry.runtime_data` instead of `hass.data[DOMAIN][entry.entry_id]`.
+Scaffold uses common key references for standard errors. Current implementation uses custom strings.
 
-**Current (`__init__.py`):**
-```python
-hass.data.setdefault(DOMAIN, {})
-hass.data[DOMAIN][entry.entry_id] = {"coordinator": coordinator}
-```
-
-**Should be:**
-```python
-type AutomationSuggestionsConfigEntry = ConfigEntry[AutomationSuggestionsCoordinator]
-
-async def async_setup_entry(hass: HomeAssistant, entry: AutomationSuggestionsConfigEntry) -> bool:
-    # ...
-    entry.runtime_data = coordinator
-```
-
-**Reference:** `script/scaffold/templates/config_flow/integration/__init__.py` lines 13-25
-
-#### 4. `PLATFORMS` Should Use `Platform` Enum (Priority: Low)
-
-**Status:** ❌ Non-compliant
-
-**Current:**
-```python
-PLATFORMS: list[str] = ["sensor", "binary_sensor"]
-```
-
-**Should be:**
-```python
-from homeassistant.const import Platform
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
-```
-
-**Reference:** `script/scaffold/templates/config_flow/integration/__init__.py` line 11
-
-#### 5. Missing `MINOR_VERSION` in Config Flow (Priority: Low)
-
-**Status:** ❌ Missing
-
-**Current (`config_flow.py`):**
-```python
-VERSION = 1
-```
-
-**Should add:**
-```python
-VERSION = 1
-MINOR_VERSION = 1
-```
-
-#### 6. Missing Standard Error Keys in `strings.json` (Priority: Low)
-
-**Status:** ⚠️ Partial
-
-Scaffold template config flow expects these standard error keys for robustness:
-
-**Current `strings.json` errors:**
+**Current (`strings.json`):**
 ```json
 "error": {
+  "already_configured": "Integration is already configured"
+},
+"abort": {
   "already_configured": "Integration is already configured"
 }
 ```
 
-**Should add (for completeness):**
+**Should be:**
 ```json
 "error": {
-  "already_configured": "Integration is already configured",
-  "cannot_connect": "Failed to connect",
-  "invalid_auth": "Invalid authentication",
-  "unknown": "Unexpected error"
+  "already_configured": "[%key:common::config_flow::error::already_configured%]"
+},
+"abort": {
+  "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
 }
 ```
 
-**Reference:** `script/scaffold/templates/config_flow/integration/config_flow.py` lines 84-90
+**Reference:** `homeassistant/components/sample_scaffold/strings.json`
 
-#### 7. Missing `test_config_flow.py` (Priority: High)
+##### 2. `coordinator.py` - Pass `config_entry` to Parent (Priority: Medium)
 
-**Status:** ❌ Missing
+**Status:** ❌ Non-compliant
 
-The scaffold generates comprehensive config flow tests. Need to create:
+The coordinator manually assigns `config_entry` instead of passing to parent constructor.
 
-**File:** `tests/integration/test_config_flow.py`
-
-**Required test cases (from scaffold template):**
-- `test_form` - Test flow initialization and successful completion
-- `test_form_invalid_auth` - Test auth error handling and recovery
-- `test_form_cannot_connect` - Test connection error handling and recovery
-- `test_already_configured` - Test duplicate prevention
-
-**Reference:** `script/scaffold/templates/config_flow/tests/test_config_flow.py` (146 lines)
-
-#### 8. Coordinator Missing `config_entry` Parameter (Priority: Medium)
-
-**Status:** ❌ Missing
-
-The coordinator should pass `config_entry` to parent for proper lifecycle management.
-
-**Current (`coordinator.py`):**
+**Current (`coordinator.py` lines 69-76):**
 ```python
 super().__init__(
     hass,
@@ -1263,6 +1154,7 @@ super().__init__(
     name=DOMAIN,
     update_interval=timedelta(days=analysis_interval_days),
 )
+self.config_entry = entry  # Manual assignment
 ```
 
 **Should be:**
@@ -1272,32 +1164,51 @@ super().__init__(
     _LOGGER,
     name=DOMAIN,
     update_interval=timedelta(days=analysis_interval_days),
-    config_entry=entry,  # ADD THIS
+    config_entry=entry,  # Pass to parent
 )
+# Remove manual assignment - parent handles it
 ```
+
+**Reference:** HA Core CLAUDE.md DataUpdateCoordinator pattern
+
+##### 3. Missing Tests (Priority: High)
+
+**Status:** ❌ Missing
+
+No test files found for the integration. Scaffold generates:
+- `tests/components/{domain}/conftest.py` - `mock_setup_entry` fixture
+- `tests/components/{domain}/test_config_flow.py` - Comprehensive flow tests
+
+**Required test cases:**
+- `test_form` - Flow initialization and successful completion
+- `test_form_invalid_auth` - Auth error handling and recovery (N/A for this integration)
+- `test_form_cannot_connect` - Connection error handling and recovery (N/A for this integration)
+- `test_already_configured` - Duplicate prevention via unique ID
+
+**Reference:** `homeassistant/components/sample_scaffold/` and `tests/components/sample_scaffold/`
 
 ### Summary Table
 
 | Issue | Severity | Effort | Status |
 |-------|----------|--------|--------|
-| Missing `quality_scale.yaml` | Medium | Low | ❌ TODO |
-| Missing `quality_scale` in manifest | Medium | Low | ❌ TODO |
-| Using `hass.data` instead of `runtime_data` | High | Medium | ❌ TODO |
-| `PLATFORMS` as strings not enum | Low | Low | ❌ TODO |
-| Missing `MINOR_VERSION` | Low | Low | ❌ TODO |
-| Missing standard error strings | Low | Low | ❌ TODO |
-| Missing config flow tests | High | Medium | ❌ TODO |
-| Coordinator missing `config_entry` param | Medium | Low | ❌ TODO |
+| `quality_scale.yaml` exists | Medium | Low | ✅ DONE |
+| `quality_scale` in manifest | Medium | Low | ✅ DONE |
+| `runtime_data` pattern | High | Medium | ✅ DONE |
+| `PLATFORMS` uses enum | Low | Low | ✅ DONE |
+| `MINOR_VERSION` present | Low | Low | ✅ DONE |
+| Common key references in strings | Low | Low | ❌ TODO |
+| Coordinator `config_entry` param | Medium | Low | ❌ TODO |
+| Config flow tests | High | Medium | ❌ TODO |
 
 **Tasks:**
-- [ ] Create `quality_scale.yaml` with Bronze rule status
-- [ ] Add `quality_scale: "bronze"` to `manifest.json`
-- [ ] Refactor `__init__.py` to use `entry.runtime_data` pattern
-- [ ] Change `PLATFORMS` to use `Platform` enum
-- [ ] Add `MINOR_VERSION = 1` to `config_flow.py`
-- [ ] Add standard error keys to `strings.json`
-- [ ] Create `tests/integration/test_config_flow.py` with full coverage
+- [x] Create `quality_scale.yaml` with Bronze rule status
+- [x] Add `quality_scale: "bronze"` to `manifest.json`
+- [x] Refactor `__init__.py` to use `entry.runtime_data` pattern
+- [x] Change `PLATFORMS` to use `Platform` enum
+- [x] Add `MINOR_VERSION = 1` to `config_flow.py`
+- [ ] Update `strings.json` to use common key references
 - [ ] Add `config_entry=entry` parameter to coordinator `__init__`
+- [ ] Create `tests/` directory with `conftest.py` and `test_config_flow.py`
 
 ---
 

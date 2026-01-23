@@ -15,6 +15,7 @@ from custom_components.automation_suggestions.const import DOMAIN
 class TestCoordinator:
     """Test the data update coordinator."""
 
+    @pytest.mark.asyncio
     async def test_coordinator_init(self, hass, config_entry, mock_store):
         """Test coordinator initializes correctly."""
         config_entry.add_to_hass(hass)
@@ -24,6 +25,7 @@ class TestCoordinator:
         assert coordinator.name == DOMAIN
         assert coordinator.update_interval == timedelta(days=7)
 
+    @pytest.mark.asyncio
     async def test_coordinator_update_success(self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions):
         """Test successful coordinator update."""
         config_entry.add_to_hass(hass)
@@ -36,6 +38,7 @@ class TestCoordinator:
         assert len(coordinator.data) == 3
         mock_analyzer.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_coordinator_update_error_handling(self, hass, config_entry, mock_store):
         """Test coordinator handles analysis errors gracefully."""
         config_entry.add_to_hass(hass)
@@ -50,6 +53,7 @@ class TestCoordinator:
             with pytest.raises(UpdateFailed):
                 await coordinator.async_config_entry_first_refresh()
 
+    @pytest.mark.asyncio
     async def test_dismissed_suggestions_persist(self, hass, config_entry, mock_analyzer, mock_store):
         """Test dismissed suggestions are persisted."""
         config_entry.add_to_hass(hass)
@@ -62,6 +66,7 @@ class TestCoordinator:
         assert "light_kitchen_turn_on_07_00" in coordinator.dismissed
         mock_store.async_save.assert_called()
 
+    @pytest.mark.asyncio
     async def test_load_persisted_restores_data(self, hass, config_entry):
         """Test loading persisted suggestions from storage."""
         config_entry.add_to_hass(hass)
@@ -83,6 +88,7 @@ class TestCoordinator:
             assert "suggestion_2" in coordinator.dismissed
             assert "suggestion_3" in coordinator.notified
 
+    @pytest.mark.asyncio
     async def test_clear_dismissed(self, hass, config_entry, mock_analyzer, mock_store):
         """Test clearing dismissed suggestions."""
         config_entry.add_to_hass(hass)
