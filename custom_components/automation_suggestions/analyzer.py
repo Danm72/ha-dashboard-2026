@@ -536,7 +536,7 @@ async def analyze_patterns_async(
             None,  # filters
             True,  # include_start_time_state
             True,  # significant_changes_only
-            True,  # minimal_response
+            False,  # minimal_response - must be False to get State objects
         )
     except Exception as err:
         _LOGGER.error("Error querying state history: %s", err)
