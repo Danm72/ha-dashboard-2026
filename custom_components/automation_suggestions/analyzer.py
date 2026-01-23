@@ -354,6 +354,10 @@ def find_automation_candidates(
                     "consistency": consistency,
                     "last_timestamp": last_ts,
                 })
+            # Debug: Log near-misses
+            elif total >= 2:
+                _LOGGER.debug("Near-miss: %s %s - total=%d (need %d), consistency=%.0f%% (need %.0f%%)",
+                             entity_id, action_type, total, min_occurrences, consistency * 100, consistency_threshold * 100)
 
     # Sort by consistency and frequency
     candidates.sort(
@@ -458,10 +462,22 @@ def analyze_logbook_entries(
     # Analyze patterns
     patterns = analyze_patterns(actions_by_entity, window_minutes)
 
+    # Debug: Log pattern summary
+    pattern_summary = []
+    for entity_id, entity_patterns in sorted(patterns.items(), key=lambda x: max(p.get("total_count", 0) for p in x[1].values()), reverse=True)[:5]:
+        for action, pdata in entity_patterns.items():
+            pattern_summary.append(f"{entity_id} {action}: {pdata.get('window_count', 0)}/{pdata.get('total_count', 0)} at {pdata.get('most_common_window', '?')}")
+    _LOGGER.info("Pattern analysis found %d entities with patterns. Top 5: %s", len(patterns), pattern_summary[:5])
+
     # Find automation candidates
     candidates = find_automation_candidates(
         patterns, min_occurrences, consistency_threshold
     )
+
+    # Debug: Log candidates
+    _LOGGER.info("Found %d candidates (min_occurrences=%d, consistency_threshold=%.2f). Candidates: %s",
+                 len(candidates), min_occurrences, consistency_threshold,
+                 [(c["entity_id"], c["action"], c["total_occurrences"], c["pattern_occurrences"], f"{c['consistency']:.0%}") for c in candidates[:10]])
 
     # Convert to Suggestion objects
     suggestions = [
