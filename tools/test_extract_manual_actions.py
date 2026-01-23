@@ -12,22 +12,22 @@ Covers:
 7. find_automation_candidates function
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Import the module under test
 from extract_manual_actions import (
-    is_manual_action,
     extract_action_from_entry,
-    parse_timestamp,
-    get_time_window,
-    format_time_range,
     find_automation_candidates,
-    get_logbook_entries,
+    format_time_range,
     get_ha_token,
+    get_logbook_entries,
+    get_time_window,
+    is_manual_action,
+    parse_timestamp,
 )
-
 
 # =============================================================================
 # 1. NoneType Bug Fix Tests (CRITICAL)

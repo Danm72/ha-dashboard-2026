@@ -2,19 +2,18 @@
 
 pytest_plugins = ["pytest_homeassistant_custom_component"]
 
-import pytest
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.automation_suggestions.const import (
-    DOMAIN,
     CONF_ANALYSIS_INTERVAL,
+    CONF_CONSISTENCY_THRESHOLD,
     CONF_LOOKBACK_DAYS,
     CONF_MIN_OCCURRENCES,
-    CONF_CONSISTENCY_THRESHOLD,
+    DOMAIN,
 )
-
 
 
 @pytest.fixture

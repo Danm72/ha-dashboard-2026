@@ -10,13 +10,13 @@ This creates:
 Run: python tests/e2e/scripts/generate_auth.py
 """
 
+import base64
 import hashlib
 import hmac
 import json
-import base64
 import secrets
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
 
 # Paths
 BASE_DIR = Path(__file__).parent.parent.parent.parent
@@ -61,9 +61,9 @@ def main():
     raw_token = secrets.token_hex(64)
 
     # Create JWT
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # Token expires in 2035 (10+ years)
-    exp = int(datetime(2035, 1, 1, tzinfo=timezone.utc).timestamp())
+    exp = int(datetime(2035, 1, 1, tzinfo=UTC).timestamp())
     iat = int(now.timestamp())
 
     jwt_payload = {

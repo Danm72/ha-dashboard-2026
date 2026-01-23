@@ -1,10 +1,9 @@
 """Tests for sensor entities."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock
-
 from homeassistant.const import STATE_UNKNOWN
-
 
 
 class TestCountSensor:
