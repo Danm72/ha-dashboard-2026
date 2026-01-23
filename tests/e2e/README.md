@@ -8,28 +8,15 @@ End-to-end tests using real Home Assistant Docker containers.
 pip install testcontainers requests docker
 ```
 
-## Initial Setup (One-time)
+## Test Data
 
-To run authenticated tests, you need to create a test token:
-
-1. Start a Home Assistant container manually:
-   ```bash
-   docker run -d -p 8123:8123 ghcr.io/home-assistant/home-assistant:stable
-   ```
-
-2. Complete onboarding at http://localhost:8123
-
-3. Create a long-lived access token:
-   - Go to Profile -> Security -> Long-lived access tokens
-   - Create token named "E2E Tests"
-   - Copy the token
-
-4. Copy the `.storage/` directory to `tests/e2e/initial_test_state/`
-
-5. Set the token as environment variable:
-   ```bash
-   export HA_TEST_TOKEN="your_token_here"
-   ```
+The tests use pre-configured data in `initial_test_state/`:
+- **Auth**: Pre-generated user and long-lived access token (expires 2035)
+- **Recorder DB**: Historical state data with detectable patterns:
+  - `light.kitchen` on at ~7:00 AM daily
+  - `light.kitchen` off at ~8:30 AM daily
+  - `light.bedroom` off at ~10:30 PM daily
+  - `switch.coffee_maker` on at ~6:45 AM weekdays
 
 ## Running Tests
 
@@ -37,8 +24,20 @@ To run authenticated tests, you need to create a test token:
 # Run e2e tests (requires -p flags to disable socket blocking)
 pytest tests/e2e/ -v -m e2e -p no:homeassistant -p no:socket
 
-# Run all tests except e2e (these use mocked HA environment)
+# Run all tests except e2e (uses mocked HA environment)
 pytest -m "not e2e"
+```
+
+## Regenerating Test Data
+
+If you need to regenerate the test database or auth tokens:
+
+```bash
+# Regenerate auth tokens
+python tests/e2e/scripts/generate_auth.py
+
+# Regenerate recorder database with patterns
+python tests/e2e/scripts/generate_test_db.py
 ```
 
 ## What These Tests Catch
@@ -46,3 +45,4 @@ pytest -m "not e2e"
 - API compatibility issues (like `session_scope` deprecation)
 - Integration loading problems
 - Real recorder/logbook behavior
+- Pattern detection in actual historical data

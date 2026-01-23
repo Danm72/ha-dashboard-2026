@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "minor_version": 5,
+  "key": "core.config_entries",
+  "data": {
+    "entries": [
+      {
+        "created_at": "2024-01-23T00:00:00.000000+00:00",
+        "data": {},
+        "disabled_by": null,
+        "discovery_keys": {},
+        "domain": "sun",
+        "entry_id": "e2e_sun_entry_id",
+        "minor_version": 1,
+        "modified_at": "2024-01-23T00:00:00.000000+00:00",
+        "options": {},
+        "pref_disable_new_entities": false,
+        "pref_disable_polling": false,
+        "source": "import",
+        "subentries": [],
+        "title": "Sun",
+        "unique_id": null,
+        "version": 1
+      },
+      {
+        "created_at": "2024-01-23T00:00:00.000000+00:00",
+        "data": {},
+        "disabled_by": null,
+        "discovery_keys": {},
+        "domain": "demo",
+        "entry_id": "e2e_demo_entry_id",
+        "minor_version": 1,
+        "modified_at": "2024-01-23T00:00:00.000000+00:00",
+        "options": {},
+        "pref_disable_new_entities": false,
+        "pref_disable_polling": false,
+        "source": "import",
+        "subentries": [],
+        "title": "Demo",
+        "unique_id": null,
+        "version": 1
+      },
+      {
+        "created_at": "2024-01-23T00:00:00.000000+00:00",
+        "data": {},
+        "disabled_by": null,
+        "discovery_keys": {},
+        "domain": "automation_suggestions",
+        "entry_id": "e2e_automation_suggestions_entry_id",
+        "minor_version": 1,
+        "modified_at": "2024-01-23T00:00:00.000000+00:00",
+        "options": {
+          "analysis_interval": 7,
+          "lookback_days": 14,
+          "min_occurrences": 5,
+          "consistency_threshold": 0.70
+        },
+        "pref_disable_new_entities": false,
+        "pref_disable_polling": false,
+        "source": "user",
+        "subentries": [],
+        "title": "Automation Suggestions",
+        "unique_id": null,
+        "version": 1
+      }
+    ]
+  }
+}

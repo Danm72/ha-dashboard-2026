@@ -620,16 +620,10 @@ async def analyze_patterns_async(
         )
 
         # Get events from the logbook (runs in executor since it's sync)
-        def _get_logbook_events():
-            events = list(event_processor.get_events(start_time, end_time))
-            return [event_processor.humanify(e) for e in events]
-
-        logbook_rows = await get_instance(hass).async_add_executor_job(
+        # get_events() already returns humanified/processed entries
+        logbook_entries = await get_instance(hass).async_add_executor_job(
             lambda: list(event_processor.get_events(start_time, end_time))
         )
-
-        # Humanify the rows (convert to readable format with context)
-        logbook_entries = list(event_processor.humanify(logbook_rows))
 
         # Convert logbook entries to our format
         for entry in logbook_entries:

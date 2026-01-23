@@ -49,9 +49,10 @@ def pytest_configure(config):
     )
 
 
-# Test token - must match what's in initial_test_state/.storage/auth
-# For initial setup, you'll need to create this manually once
-TEST_TOKEN = os.environ.get("HA_TEST_TOKEN", "")
+# Import test token from centralized constants
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from test_constants import TEST_TOKEN
 
 
 def _setup_config_permissions(config_path: Path) -> None:
@@ -159,8 +160,6 @@ def ha_url(ha_container):
 @pytest.fixture(scope="session")
 def ha_token():
     """Return the test token for authenticated API calls."""
-    if not TEST_TOKEN:
-        pytest.skip("HA_TEST_TOKEN not set - run initial setup first")
     return TEST_TOKEN
 
 
