@@ -39,9 +39,7 @@ async def async_setup_entry(
         entry: Config entry being set up.
         async_add_entities: Callback to add entities.
     """
-    coordinator: AutomationSuggestionsCoordinator = hass.data[DOMAIN][entry.entry_id][
-        "coordinator"
-    ]
+    coordinator: AutomationSuggestionsCoordinator = entry.runtime_data
 
     entities: list[SensorEntity] = [
         AutomationSuggestionsCountSensor(coordinator, entry),

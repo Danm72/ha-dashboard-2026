@@ -1,0 +1,34 @@
+rules:
+  # Bronze
+  action-setup: done
+  appropriate-polling: done
+  brands:
+    status: exempt
+    comment: Custom component not in official repository.
+  common-modules: done
+  config-flow-test-coverage: done
+  config-flow: done
+  dependency-transparency: done
+  docs-actions:
+    status: exempt
+    comment: Custom component, docs provided in repo README.
+  docs-high-level-description:
+    status: exempt
+    comment: Custom component, docs provided in repo README.
+  docs-installation-instructions:
+    status: exempt
+    comment: Custom component, docs provided in repo README.
+  docs-removal-instructions:
+    status: exempt
+    comment: Custom component, docs provided in repo README.
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+
+  # Silver
+  config-entry-unloading: done
+  integration-owner: done

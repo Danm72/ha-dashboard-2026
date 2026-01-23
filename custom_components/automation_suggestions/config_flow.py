@@ -89,6 +89,7 @@ class AutomationSuggestionsConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Automation Suggestions."""
 
     VERSION = 1
+    MINOR_VERSION = 1
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None

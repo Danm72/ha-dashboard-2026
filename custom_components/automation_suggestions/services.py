@@ -3,19 +3,16 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
 
 import voluptuous as vol
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 import homeassistant.helpers.config_validation as cv
 
 from .const import DOMAIN
 from .coordinator import AutomationSuggestionsCoordinator
-
-if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,7 +32,7 @@ SERVICE_DISMISS_SCHEMA = vol.Schema(
 
 
 def _get_coordinator(hass: HomeAssistant) -> AutomationSuggestionsCoordinator:
-    """Get the coordinator from hass.data.
+    """Get the coordinator from config entries.
 
     Args:
         hass: Home Assistant instance.
@@ -46,15 +43,18 @@ def _get_coordinator(hass: HomeAssistant) -> AutomationSuggestionsCoordinator:
     Raises:
         HomeAssistantError: If no coordinator is found.
     """
-    if DOMAIN not in hass.data:
+    # Get config entries for this domain
+    entries: list[ConfigEntry] = hass.config_entries.async_entries(DOMAIN)
+
+    if not entries:
         raise HomeAssistantError(
             f"Integration {DOMAIN} is not set up"
         )
 
-    # Get the first (and typically only) coordinator
-    for entry_data in hass.data[DOMAIN].values():
-        if isinstance(entry_data, dict) and "coordinator" in entry_data:
-            return entry_data["coordinator"]
+    # Get the first (and typically only) coordinator from runtime_data
+    for entry in entries:
+        if hasattr(entry, "runtime_data") and entry.runtime_data is not None:
+            return entry.runtime_data
 
     raise HomeAssistantError(
         f"No coordinator found for {DOMAIN}. Is the integration configured?"
@@ -130,7 +130,8 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         hass: Home Assistant instance.
     """
     # Only unload services if no entries remain
-    if DOMAIN in hass.data and hass.data[DOMAIN]:
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if entries:
         _LOGGER.debug("Other entries remain, keeping services registered")
         return
 
