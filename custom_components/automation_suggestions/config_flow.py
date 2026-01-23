@@ -69,9 +69,7 @@ def get_config_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
             ),
             vol.Required(
                 CONF_CONSISTENCY_THRESHOLD,
-                default=defaults.get(
-                    CONF_CONSISTENCY_THRESHOLD, DEFAULT_CONSISTENCY_THRESHOLD
-                ),
+                default=defaults.get(CONF_CONSISTENCY_THRESHOLD, DEFAULT_CONSISTENCY_THRESHOLD),
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=0.5,
@@ -90,9 +88,7 @@ class AutomationSuggestionsConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
     MINOR_VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the initial step."""
         # Only allow single instance
         await self.async_set_unique_id(DOMAIN)
@@ -106,9 +102,7 @@ class AutomationSuggestionsConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_ANALYSIS_INTERVAL: int(user_input[CONF_ANALYSIS_INTERVAL]),
                     CONF_LOOKBACK_DAYS: int(user_input[CONF_LOOKBACK_DAYS]),
                     CONF_MIN_OCCURRENCES: int(user_input[CONF_MIN_OCCURRENCES]),
-                    CONF_CONSISTENCY_THRESHOLD: float(
-                        user_input[CONF_CONSISTENCY_THRESHOLD]
-                    ),
+                    CONF_CONSISTENCY_THRESHOLD: float(user_input[CONF_CONSISTENCY_THRESHOLD]),
                 },
             )
 
@@ -133,9 +127,7 @@ class AutomationSuggestionsOptionsFlow(OptionsFlow):
         """Initialize options flow."""
         self.config_entry = config_entry
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manage the options."""
         if user_input is not None:
             return self.async_create_entry(
@@ -144,9 +136,7 @@ class AutomationSuggestionsOptionsFlow(OptionsFlow):
                     CONF_ANALYSIS_INTERVAL: int(user_input[CONF_ANALYSIS_INTERVAL]),
                     CONF_LOOKBACK_DAYS: int(user_input[CONF_LOOKBACK_DAYS]),
                     CONF_MIN_OCCURRENCES: int(user_input[CONF_MIN_OCCURRENCES]),
-                    CONF_CONSISTENCY_THRESHOLD: float(
-                        user_input[CONF_CONSISTENCY_THRESHOLD]
-                    ),
+                    CONF_CONSISTENCY_THRESHOLD: float(user_input[CONF_CONSISTENCY_THRESHOLD]),
                 },
             )
 

@@ -45,7 +45,9 @@ class TestServices:
         assert "light_kitchen_turn_on_07_00" in coordinator.dismissed
 
     @pytest.mark.asyncio
-    async def test_dismiss_service_requires_suggestion_id(self, hass, config_entry, mock_analyzer, mock_store):
+    async def test_dismiss_service_requires_suggestion_id(
+        self, hass, config_entry, mock_analyzer, mock_store
+    ):
         """Test dismiss service requires suggestion_id."""
         config_entry.add_to_hass(hass)
         await hass.config_entries.async_setup(config_entry.entry_id)

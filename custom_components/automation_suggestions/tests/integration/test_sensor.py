@@ -10,7 +10,9 @@ class TestCountSensor:
     """Test the suggestions count sensor."""
 
     @pytest.mark.asyncio
-    async def test_count_sensor_state(self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions):
+    async def test_count_sensor_state(
+        self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions
+    ):
         """Test count sensor reflects suggestion count."""
         config_entry.add_to_hass(hass)
         await hass.config_entries.async_setup(config_entry.entry_id)
@@ -22,7 +24,9 @@ class TestCountSensor:
         assert state.attributes.get("unit_of_measurement") == "suggestions"
 
     @pytest.mark.asyncio
-    async def test_count_sensor_zero_when_empty(self, hass, config_entry, mock_store, empty_suggestions):
+    async def test_count_sensor_zero_when_empty(
+        self, hass, config_entry, mock_store, empty_suggestions
+    ):
         """Test count sensor is 0 when no suggestions."""
         config_entry.add_to_hass(hass)
 
@@ -43,7 +47,9 @@ class TestTopSensor:
     """Test the top suggestions sensor."""
 
     @pytest.mark.asyncio
-    async def test_top_sensor_attributes(self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions):
+    async def test_top_sensor_attributes(
+        self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions
+    ):
         """Test top sensor has suggestions in attributes."""
         config_entry.add_to_hass(hass)
         await hass.config_entries.async_setup(config_entry.entry_id)
@@ -100,7 +106,9 @@ class TestBinarySensor:
     """Test the availability binary sensor."""
 
     @pytest.mark.asyncio
-    async def test_binary_sensor_on_when_suggestions_exist(self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions):
+    async def test_binary_sensor_on_when_suggestions_exist(
+        self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions
+    ):
         """Test binary sensor is on when suggestions exist."""
         config_entry.add_to_hass(hass)
         await hass.config_entries.async_setup(config_entry.entry_id)
@@ -111,7 +119,9 @@ class TestBinarySensor:
         assert state.state == "on"
 
     @pytest.mark.asyncio
-    async def test_binary_sensor_off_when_no_suggestions(self, hass, config_entry, mock_store, empty_suggestions):
+    async def test_binary_sensor_off_when_no_suggestions(
+        self, hass, config_entry, mock_store, empty_suggestions
+    ):
         """Test binary sensor is off when no suggestions."""
         config_entry.add_to_hass(hass)
 
@@ -132,7 +142,9 @@ class TestLastAnalysisSensor:
     """Test the last analysis timestamp sensor."""
 
     @pytest.mark.asyncio
-    async def test_last_analysis_timestamp(self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions):
+    async def test_last_analysis_timestamp(
+        self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions
+    ):
         """Test last analysis sensor shows timestamp."""
         config_entry.add_to_hass(hass)
         await hass.config_entries.async_setup(config_entry.entry_id)

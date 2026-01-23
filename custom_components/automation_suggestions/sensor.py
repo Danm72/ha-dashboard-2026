@@ -178,7 +178,7 @@ class AutomationSuggestionsLastAnalysisSensor(AutomationSuggestionsBaseSensor):
         if not self.coordinator.last_update_success:
             return None
         # Return the last_updated time from coordinator if available
-        return getattr(self.coordinator, '_last_update_time', None)
+        return getattr(self.coordinator, "_last_update_time", None)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

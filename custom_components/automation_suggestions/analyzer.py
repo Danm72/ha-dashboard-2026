@@ -26,9 +26,17 @@ except ImportError:
     # Defaults for standalone testing
     DEFAULT_TIME_WINDOW_MINUTES = 30
     TRACKED_DOMAINS = [
-        "light", "switch", "cover", "climate", "scene", "script",
-        "input_number", "input_boolean", "input_select",
-        "input_datetime", "input_button"
+        "light",
+        "switch",
+        "cover",
+        "climate",
+        "scene",
+        "script",
+        "input_number",
+        "input_boolean",
+        "input_select",
+        "input_datetime",
+        "input_button",
     ]
 
 if TYPE_CHECKING:
@@ -50,14 +58,17 @@ class Suggestion:
     consistency_score: float
     occurrence_count: int
     last_occurrence: str
+    friendly_name: str = ""
 
     @property
     def description(self) -> str:
         """Return a human-readable description of the suggestion."""
         action_display = self._format_action(self.action)
         consistency_pct = int(self.consistency_score * 100)
+        # Use friendly_name if available, otherwise fall back to entity_id
+        display_name = self.friendly_name if self.friendly_name else self.entity_id
         return (
-            f"{action_display} {self.entity_id} around {self.suggested_time} "
+            f"{action_display} {display_name} around {self.suggested_time} "
             f"({consistency_pct}% consistent, seen {self.occurrence_count} times)"
         )
 
@@ -90,6 +101,7 @@ class Suggestion:
             "consistency_score": self.consistency_score,
             "occurrence_count": self.occurrence_count,
             "last_occurrence": self.last_occurrence,
+            "friendly_name": self.friendly_name,
             "description": self.description,
         }
 
@@ -106,6 +118,7 @@ class Suggestion:
             consistency_score=data["consistency_score"],
             occurrence_count=data["occurrence_count"],
             last_occurrence=data["last_occurrence"],
+            friendly_name=data.get("friendly_name", ""),
         )
 
 
@@ -151,21 +164,15 @@ def is_manual_action(entry: dict[str, Any]) -> bool:
             if pattern in source:
                 return False
 
-    # If we have context_user_id, it's definitely manual
-    if entry.get("context_user_id"):
+    # If we have a valid context_user_id (not placeholder "unknown"), it's definitely manual
+    context_user_id = entry.get("context_user_id")
+    if context_user_id and context_user_id != "unknown":
         return True
 
-    # For entries without context_user_id, check if it's a tracked domain
-    # and has no automation indicators - likely a physical trigger
-    entity_id = str(entry.get("entity_id") or "")
-    if not entity_id:
-        return False
-
-    # Must be an actual state change (not just an event)
-    if not entry.get("state"):
-        return False
-
-    return True
+    # Without valid context_user_id, we cannot confirm this is a manual action
+    # This prevents false positives from integration events that slip through
+    # without explicit automation markers
+    return False
 
 
 def extract_action_from_entry(entry: dict[str, Any]) -> str:
@@ -233,9 +240,7 @@ def parse_timestamp(ts_str: str | Any | None) -> datetime | None:
         return None
 
 
-def get_time_window(
-    dt: datetime, window_minutes: int = DEFAULT_TIME_WINDOW_MINUTES
-) -> str:
+def get_time_window(dt: datetime, window_minutes: int = DEFAULT_TIME_WINDOW_MINUTES) -> str:
     """Get a time window string for grouping.
 
     Args:
@@ -271,7 +276,9 @@ def format_time_range(hours: list[int]) -> str:
         return f"{min_hour:02d}:00-{max_hour:02d}:59"
 
 
-def calculate_time_window_bounds(window: str, window_minutes: int = DEFAULT_TIME_WINDOW_MINUTES) -> tuple[str, str]:
+def calculate_time_window_bounds(
+    window: str, window_minutes: int = DEFAULT_TIME_WINDOW_MINUTES
+) -> tuple[str, str]:
     """Calculate start and end times for a time window.
 
     Args:
@@ -350,9 +357,7 @@ def analyze_patterns(
 
             # Find the most common time window
             if time_windows:
-                most_common_window = max(
-                    time_windows.keys(), key=lambda w: len(time_windows[w])
-                )
+                most_common_window = max(time_windows.keys(), key=lambda w: len(time_windows[w]))
                 window_count = len(time_windows[most_common_window])
                 last_ts = max(valid_timestamps)
 
@@ -401,25 +406,32 @@ def find_automation_candidates(
                 most_common_window = pattern_data["most_common_window"]
                 last_ts = pattern_data.get("last_timestamp")
 
-                candidates.append({
-                    "entity_id": entity_id,
-                    "action": action_type,
-                    "total_occurrences": total,
-                    "pattern_window": most_common_window,
-                    "pattern_occurrences": window_count,
-                    "time_range": pattern_data["time_range"],
-                    "consistency": consistency,
-                    "last_timestamp": last_ts,
-                })
+                candidates.append(
+                    {
+                        "entity_id": entity_id,
+                        "action": action_type,
+                        "total_occurrences": total,
+                        "pattern_window": most_common_window,
+                        "pattern_occurrences": window_count,
+                        "time_range": pattern_data["time_range"],
+                        "consistency": consistency,
+                        "last_timestamp": last_ts,
+                    }
+                )
             # Debug: Log near-misses
             elif total >= 2:
-                _LOGGER.debug("Near-miss: %s %s - total=%d (need %d), consistency=%.0f%% (need %.0f%%)",
-                             entity_id, action_type, total, min_occurrences, consistency * 100, consistency_threshold * 100)
+                _LOGGER.debug(
+                    "Near-miss: %s %s - total=%d (need %d), consistency=%.0f%% (need %.0f%%)",
+                    entity_id,
+                    action_type,
+                    total,
+                    min_occurrences,
+                    consistency * 100,
+                    consistency_threshold * 100,
+                )
 
     # Sort by consistency and frequency
-    candidates.sort(
-        key=lambda c: (c["consistency"], c["total_occurrences"]), reverse=True
-    )
+    candidates.sort(key=lambda c: (c["consistency"], c["total_occurrences"]), reverse=True)
 
     return candidates
 
@@ -521,25 +533,44 @@ def analyze_logbook_entries(
 
     # Debug: Log pattern summary
     pattern_summary = []
-    for entity_id, entity_patterns in sorted(patterns.items(), key=lambda x: max(p.get("total_count", 0) for p in x[1].values()), reverse=True)[:5]:
+    for entity_id, entity_patterns in sorted(
+        patterns.items(),
+        key=lambda x: max(p.get("total_count", 0) for p in x[1].values()),
+        reverse=True,
+    )[:5]:
         for action, pdata in entity_patterns.items():
-            pattern_summary.append(f"{entity_id} {action}: {pdata.get('window_count', 0)}/{pdata.get('total_count', 0)} at {pdata.get('most_common_window', '?')}")
-    _LOGGER.info("Pattern analysis found %d entities with patterns. Top 5: %s", len(patterns), pattern_summary[:5])
-
-    # Find automation candidates
-    candidates = find_automation_candidates(
-        patterns, min_occurrences, consistency_threshold
+            pattern_summary.append(
+                f"{entity_id} {action}: {pdata.get('window_count', 0)}/{pdata.get('total_count', 0)} at {pdata.get('most_common_window', '?')}"
+            )
+    _LOGGER.info(
+        "Pattern analysis found %d entities with patterns. Top 5: %s",
+        len(patterns),
+        pattern_summary[:5],
     )
 
+    # Find automation candidates
+    candidates = find_automation_candidates(patterns, min_occurrences, consistency_threshold)
+
     # Debug: Log candidates
-    _LOGGER.info("Found %d candidates (min_occurrences=%d, consistency_threshold=%.2f). Candidates: %s",
-                 len(candidates), min_occurrences, consistency_threshold,
-                 [(c["entity_id"], c["action"], c["total_occurrences"], c["pattern_occurrences"], f"{c['consistency']:.0%}") for c in candidates[:10]])
+    _LOGGER.info(
+        "Found %d candidates (min_occurrences=%d, consistency_threshold=%.2f). Candidates: %s",
+        len(candidates),
+        min_occurrences,
+        consistency_threshold,
+        [
+            (
+                c["entity_id"],
+                c["action"],
+                c["total_occurrences"],
+                c["pattern_occurrences"],
+                f"{c['consistency']:.0%}",
+            )
+            for c in candidates[:10]
+        ],
+    )
 
     # Convert to Suggestion objects
-    suggestions = [
-        create_suggestion_from_candidate(c, window_minutes) for c in candidates
-    ]
+    suggestions = [create_suggestion_from_candidate(c, window_minutes) for c in candidates]
 
     return suggestions
 
@@ -620,6 +651,12 @@ async def _analyze_via_state_history(
         consistency_threshold,
         DEFAULT_TIME_WINDOW_MINUTES,
     )
+
+    # Populate friendly names from current state
+    for suggestion in suggestions:
+        state = hass.states.get(suggestion.entity_id)
+        if state:
+            suggestion.friendly_name = state.attributes.get("friendly_name", suggestion.entity_id)
 
     return [s for s in suggestions if s.id not in dismissed_suggestions]
 
@@ -725,32 +762,49 @@ async def analyze_patterns_async(
         _LOGGER.info(
             "EventProcessor stats: %d total entries, %d with context_user_id, %d without. "
             "Sample entries with user: %s",
-            len(entries), entries_with_user, entries_without_user,
-            sample_entries[:3] if sample_entries else "none"
+            len(entries),
+            entries_with_user,
+            entries_without_user,
+            sample_entries[:3] if sample_entries else "none",
         )
 
     except ImportError as ie:
         _LOGGER.debug("Logbook EventProcessor not available: %s", ie)
         return await _analyze_via_state_history(
-            hass, start_time, end_time, min_occurrences,
-            consistency_threshold, dismissed_suggestions
+            hass,
+            start_time,
+            end_time,
+            min_occurrences,
+            consistency_threshold,
+            dismissed_suggestions,
         )
     except Exception as err:
         import traceback
+
         _LOGGER.warning(
             "Error querying logbook: %s (%s), falling back to state history. Traceback: %s",
-            err, type(err).__name__, traceback.format_exc()
+            err,
+            type(err).__name__,
+            traceback.format_exc(),
         )
         return await _analyze_via_state_history(
-            hass, start_time, end_time, min_occurrences,
-            consistency_threshold, dismissed_suggestions
+            hass,
+            start_time,
+            end_time,
+            min_occurrences,
+            consistency_threshold,
+            dismissed_suggestions,
         )
 
     if not entries:
         _LOGGER.debug("No logbook entries found, trying state history fallback")
         return await _analyze_via_state_history(
-            hass, start_time, end_time, min_occurrences,
-            consistency_threshold, dismissed_suggestions
+            hass,
+            start_time,
+            end_time,
+            min_occurrences,
+            consistency_threshold,
+            dismissed_suggestions,
         )
 
     # Run the analysis in executor (CPU-bound work)
@@ -762,6 +816,12 @@ async def analyze_patterns_async(
         consistency_threshold,
         DEFAULT_TIME_WINDOW_MINUTES,
     )
+
+    # Populate friendly names from current state
+    for suggestion in suggestions:
+        state = hass.states.get(suggestion.entity_id)
+        if state:
+            suggestion.friendly_name = state.attributes.get("friendly_name", suggestion.entity_id)
 
     # Filter out dismissed suggestions
     filtered_suggestions = [s for s in suggestions if s.id not in dismissed_suggestions]

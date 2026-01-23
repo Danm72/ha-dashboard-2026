@@ -34,6 +34,7 @@ from custom_components.automation_suggestions.analyzer import (
 # 1. NoneType Bug Fix Tests (CRITICAL)
 # =============================================================================
 
+
 class TestNoneTypeBugFix:
     """Tests for the NoneType bug fix when entity_id is null."""
 
@@ -102,6 +103,7 @@ class TestNoneTypeBugFix:
 # =============================================================================
 # 1.5 Suggestion Description Tests
 # =============================================================================
+
 
 class TestSuggestionDescription:
     """Tests for the Suggestion.description property."""
@@ -278,8 +280,182 @@ class TestSuggestionDescription:
 
 
 # =============================================================================
+# 1.6 Suggestion Friendly Name Tests
+# =============================================================================
+
+
+class TestSuggestionFriendlyName:
+    """Tests for the Suggestion.friendly_name field and its use in descriptions."""
+
+    def test_description_uses_friendly_name_when_available(self):
+        """Test that description uses friendly_name when set."""
+        suggestion = Suggestion(
+            id="light_living_room_turn_on_07_00",
+            entity_id="light.living_room",
+            action="turn_on",
+            suggested_time="07:00",
+            time_window_start="07:00",
+            time_window_end="07:29",
+            consistency_score=0.85,
+            occurrence_count=12,
+            last_occurrence="2026-01-22T07:15:00+00:00",
+            friendly_name="Living Room Lamp",
+        )
+        assert suggestion.description == (
+            "Turn on Living Room Lamp around 07:00 (85% consistent, seen 12 times)"
+        )
+
+    def test_description_falls_back_to_entity_id_when_friendly_name_empty(self):
+        """Test that description falls back to entity_id when friendly_name is empty."""
+        suggestion = Suggestion(
+            id="switch_bedroom_turn_off_22_00",
+            entity_id="switch.bedroom",
+            action="turn_off",
+            suggested_time="22:00",
+            time_window_start="22:00",
+            time_window_end="22:29",
+            consistency_score=0.90,
+            occurrence_count=8,
+            last_occurrence="2026-01-22T22:10:00+00:00",
+            friendly_name="",  # Empty string
+        )
+        assert suggestion.description == (
+            "Turn off switch.bedroom around 22:00 (90% consistent, seen 8 times)"
+        )
+
+    def test_description_falls_back_to_entity_id_when_friendly_name_not_set(self):
+        """Test that description falls back to entity_id when friendly_name uses default."""
+        suggestion = Suggestion(
+            id="cover_garage_turn_on_08_00",
+            entity_id="cover.garage",
+            action="turn_on",
+            suggested_time="08:00",
+            time_window_start="08:00",
+            time_window_end="08:29",
+            consistency_score=0.75,
+            occurrence_count=6,
+            last_occurrence="2026-01-22T08:05:00+00:00",
+            # friendly_name not specified, defaults to ""
+        )
+        assert suggestion.description == (
+            "Turn on cover.garage around 08:00 (75% consistent, seen 6 times)"
+        )
+
+    def test_to_dict_includes_friendly_name(self):
+        """Test that to_dict includes the friendly_name field."""
+        suggestion = Suggestion(
+            id="light_kitchen_turn_on_06_00",
+            entity_id="light.kitchen",
+            action="turn_on",
+            suggested_time="06:00",
+            time_window_start="06:00",
+            time_window_end="06:29",
+            consistency_score=0.95,
+            occurrence_count=14,
+            last_occurrence="2026-01-22T06:10:00+00:00",
+            friendly_name="Kitchen Ceiling Light",
+        )
+        result = suggestion.to_dict()
+        assert "friendly_name" in result
+        assert result["friendly_name"] == "Kitchen Ceiling Light"
+        # Verify description in dict also uses friendly_name
+        assert "Kitchen Ceiling Light" in result["description"]
+
+    def test_to_dict_includes_empty_friendly_name(self):
+        """Test that to_dict includes friendly_name even when empty."""
+        suggestion = Suggestion(
+            id="light_test_turn_on_10_00",
+            entity_id="light.test",
+            action="turn_on",
+            suggested_time="10:00",
+            time_window_start="10:00",
+            time_window_end="10:29",
+            consistency_score=0.80,
+            occurrence_count=8,
+            last_occurrence="2026-01-22T10:00:00+00:00",
+        )
+        result = suggestion.to_dict()
+        assert "friendly_name" in result
+        assert result["friendly_name"] == ""
+
+    def test_from_dict_with_friendly_name(self):
+        """Test that from_dict correctly loads friendly_name."""
+        data = {
+            "id": "light_office_turn_off_18_00",
+            "entity_id": "light.office",
+            "action": "turn_off",
+            "suggested_time": "18:00",
+            "time_window_start": "18:00",
+            "time_window_end": "18:29",
+            "consistency_score": 0.85,
+            "occurrence_count": 10,
+            "last_occurrence": "2026-01-22T18:15:00+00:00",
+            "friendly_name": "Office Desk Lamp",
+        }
+        suggestion = Suggestion.from_dict(data)
+        assert suggestion.friendly_name == "Office Desk Lamp"
+        assert "Office Desk Lamp" in suggestion.description
+
+    def test_from_dict_without_friendly_name_backwards_compatible(self):
+        """Test that from_dict handles missing friendly_name for backwards compatibility."""
+        data = {
+            "id": "switch_porch_turn_on_19_00",
+            "entity_id": "switch.porch",
+            "action": "turn_on",
+            "suggested_time": "19:00",
+            "time_window_start": "19:00",
+            "time_window_end": "19:29",
+            "consistency_score": 0.70,
+            "occurrence_count": 7,
+            "last_occurrence": "2026-01-22T19:05:00+00:00",
+            # No friendly_name key - simulates old persisted data
+        }
+        suggestion = Suggestion.from_dict(data)
+        assert suggestion.friendly_name == ""
+        assert "switch.porch" in suggestion.description
+
+    def test_friendly_name_with_special_characters(self):
+        """Test friendly_name with special characters in display."""
+        suggestion = Suggestion(
+            id="light_dining_turn_on_12_00",
+            entity_id="light.dining_room",
+            action="turn_on",
+            suggested_time="12:00",
+            time_window_start="12:00",
+            time_window_end="12:29",
+            consistency_score=0.80,
+            occurrence_count=9,
+            last_occurrence="2026-01-22T12:10:00+00:00",
+            friendly_name="Dining Room (Main) - Chandelier",
+        )
+        assert "Dining Room (Main) - Chandelier" in suggestion.description
+
+    def test_round_trip_serialization_with_friendly_name(self):
+        """Test that to_dict/from_dict round-trip preserves friendly_name."""
+        original = Suggestion(
+            id="climate_living_set_heat_20_00",
+            entity_id="climate.living_room",
+            action="set_heat",
+            suggested_time="20:00",
+            time_window_start="20:00",
+            time_window_end="20:29",
+            consistency_score=0.90,
+            occurrence_count=11,
+            last_occurrence="2026-01-22T20:00:00+00:00",
+            friendly_name="Living Room Thermostat",
+        )
+        serialized = original.to_dict()
+        restored = Suggestion.from_dict(serialized)
+
+        assert restored.friendly_name == original.friendly_name
+        assert restored.entity_id == original.entity_id
+        assert restored.description == original.description
+
+
+# =============================================================================
 # 2. is_manual_action Function Tests
 # =============================================================================
+
 
 class TestIsManualAction:
     """Tests for the is_manual_action function.
@@ -290,27 +466,27 @@ class TestIsManualAction:
     """
 
     # -------------------------------------------------------------------------
-    # Physical trigger tests (no context_user_id, no automation context)
+    # Entries without valid context_user_id (now return False)
     # -------------------------------------------------------------------------
 
-    def test_physical_switch_trigger_returns_true(self):
-        """Physical switch with state but no context_user_id should be manual."""
+    def test_entry_without_context_user_id_returns_false(self):
+        """Entry with state but no context_user_id should return False (cannot confirm manual)."""
         entry = {
             "entity_id": "switch.living_room",
             "state": "on",
         }
-        assert is_manual_action(entry) is True
+        assert is_manual_action(entry) is False
 
-    def test_zigbee_button_press_returns_true(self):
-        """Zigbee button press with state but no context_user_id should be manual."""
+    def test_entry_without_context_user_id_light_returns_false(self):
+        """Light entry with state but no context_user_id should return False."""
         entry = {
             "entity_id": "light.bedroom",
             "state": "on",
-            # No context_user_id - typical for Zigbee/Z-Wave triggers
+            # No context_user_id - cannot confirm manual action
         }
-        assert is_manual_action(entry) is True
+        assert is_manual_action(entry) is False
 
-    def test_physical_trigger_without_state_returns_false(self):
+    def test_entry_without_state_returns_false(self):
         """Entry without state (just an event) should return False."""
         entry = {
             "entity_id": "light.living_room",
@@ -318,7 +494,7 @@ class TestIsManualAction:
         }
         assert is_manual_action(entry) is False
 
-    def test_physical_trigger_without_entity_id_returns_false(self):
+    def test_entry_without_entity_id_returns_false(self):
         """Entry without entity_id should return False."""
         entry = {
             "state": "on",
@@ -446,15 +622,14 @@ class TestIsManualAction:
     # -------------------------------------------------------------------------
 
     def test_returns_false_when_context_user_id_is_empty(self):
-        """Should return False when context_user_id is empty string (no state change proof)."""
+        """Should return False when context_user_id is empty string."""
         entry = {
             "entity_id": "light.living_room",
             "state": "on",
             "context_user_id": "",
         }
-        # Empty string is falsy, but we still have entity_id and state
-        # so it should be considered a potential physical trigger
-        assert is_manual_action(entry) is True
+        # Empty string is falsy, cannot confirm manual action
+        assert is_manual_action(entry) is False
 
     def test_context_user_id_as_integer(self):
         """context_user_id as integer instead of string should still be truthy."""
@@ -465,12 +640,58 @@ class TestIsManualAction:
         }
         assert is_manual_action(entry) is True
 
-    def test_non_automation_source_returns_true(self):
-        """Source that doesn't match automation patterns should return True."""
+    def test_non_automation_source_without_user_id_returns_false(self):
+        """Source that doesn't match automation patterns but no user_id should return False."""
         entry = {
             "entity_id": "light.living_room",
             "state": "on",
             "source": "user interaction",
+        }
+        # No context_user_id, cannot confirm manual action
+        assert is_manual_action(entry) is False
+
+    # -------------------------------------------------------------------------
+    # context_user_id "unknown" placeholder tests (false positive fix)
+    # -------------------------------------------------------------------------
+
+    def test_context_user_id_unknown_returns_false(self):
+        """context_user_id set to 'unknown' placeholder should return False."""
+        entry = {
+            "entity_id": "switch.unifi_protect_camera",
+            "state": "on",
+            "context_user_id": "unknown",
+        }
+        # "unknown" is a placeholder from state history fallback, not a real user
+        assert is_manual_action(entry) is False
+
+    def test_context_user_id_unknown_with_state_returns_false(self):
+        """Entry with 'unknown' context_user_id from state history should return False."""
+        entry = {
+            "entity_id": "light.living_room",
+            "state": "on",
+            "when": "2025-01-20T10:00:00Z",
+            "context_user_id": "unknown",
+            "context_event_type": None,
+            "context_domain": None,
+        }
+        # This simulates the state history fallback entry format
+        assert is_manual_action(entry) is False
+
+    def test_context_user_id_valid_uuid_returns_true(self):
+        """Entry with valid UUID context_user_id should return True."""
+        entry = {
+            "entity_id": "light.living_room",
+            "state": "on",
+            "context_user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        }
+        assert is_manual_action(entry) is True
+
+    def test_context_user_id_valid_string_returns_true(self):
+        """Entry with any valid non-unknown string context_user_id should return True."""
+        entry = {
+            "entity_id": "light.living_room",
+            "state": "on",
+            "context_user_id": "user123",
         }
         assert is_manual_action(entry) is True
 
@@ -478,6 +699,7 @@ class TestIsManualAction:
 # =============================================================================
 # 3. extract_action_from_entry Function Tests
 # =============================================================================
+
 
 class TestExtractActionFromEntry:
     """Tests for the extract_action_from_entry function."""
@@ -614,6 +836,7 @@ class TestExtractActionFromEntry:
 # 4. parse_timestamp Function Tests
 # =============================================================================
 
+
 class TestParseTimestamp:
     """Tests for the parse_timestamp function."""
 
@@ -693,6 +916,7 @@ class TestParseTimestamp:
 # 5. get_time_window Function Tests
 # =============================================================================
 
+
 class TestGetTimeWindow:
     """Tests for the get_time_window function."""
 
@@ -767,6 +991,7 @@ class TestGetTimeWindow:
 # 6. format_time_range Function Tests
 # =============================================================================
 
+
 class TestFormatTimeRange:
     """Tests for the format_time_range function."""
 
@@ -820,6 +1045,7 @@ class TestFormatTimeRange:
 # =============================================================================
 # 7. find_automation_candidates Function Tests
 # =============================================================================
+
 
 class TestFindAutomationCandidates:
     """Tests for the find_automation_candidates function."""
@@ -900,7 +1126,7 @@ class TestFindAutomationCandidates:
                     "hours": [22, 22, 22, 22, 22],
                     "time_range": "22:00",
                 }
-            }
+            },
         }
         result = find_automation_candidates(patterns, min_occurrences=3)
         assert len(result) == 2
@@ -983,7 +1209,7 @@ class TestFindAutomationCandidates:
                     "window_count": 5,
                     "hours": [22, 22, 22, 22, 22],
                     "time_range": "22:00",
-                }
+                },
             }
         }
         result = find_automation_candidates(patterns, min_occurrences=3)
@@ -999,6 +1225,7 @@ class TestFindAutomationCandidates:
 # =============================================================================
 # 8. Malformed Logbook Entries Tests
 # =============================================================================
+
 
 class TestMalformedLogbookEntries:
     """
@@ -1056,15 +1283,15 @@ class TestMalformedLogbookEntries:
         assert result is None
 
     def test_entry_with_no_context_user_id_key(self):
-        """Entry missing context_user_id key but with entity_id and state should be manual."""
+        """Entry missing context_user_id key should return False (cannot confirm manual)."""
         entry = {
             "entity_id": "light.living_room",
             "state": "on",
             "when": "2025-01-20T10:00:00Z",
         }
         result = is_manual_action(entry)
-        # With exclusion-based logic, this is considered a physical trigger
-        assert result is True
+        # Without valid context_user_id, cannot confirm manual action
+        assert result is False
 
     # -------------------------------------------------------------------------
     # 8.2 Wrong Data Types

@@ -26,7 +26,9 @@ class TestCoordinator:
         assert coordinator.update_interval == timedelta(days=7)
 
     @pytest.mark.asyncio
-    async def test_coordinator_update_success(self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions):
+    async def test_coordinator_update_success(
+        self, hass, config_entry, mock_analyzer, mock_store, mock_suggestions
+    ):
         """Test successful coordinator update."""
         config_entry.add_to_hass(hass)
 
@@ -54,7 +56,9 @@ class TestCoordinator:
                 await coordinator.async_config_entry_first_refresh()
 
     @pytest.mark.asyncio
-    async def test_dismissed_suggestions_persist(self, hass, config_entry, mock_analyzer, mock_store):
+    async def test_dismissed_suggestions_persist(
+        self, hass, config_entry, mock_analyzer, mock_store
+    ):
         """Test dismissed suggestions are persisted."""
         config_entry.add_to_hass(hass)
 
@@ -75,10 +79,12 @@ class TestCoordinator:
             "custom_components.automation_suggestions.coordinator.Store"
         ) as mock_store_class:
             mock_store = AsyncMock()
-            mock_store.async_load = AsyncMock(return_value={
-                "dismissed": ["suggestion_1", "suggestion_2"],
-                "notified": ["suggestion_3"],
-            })
+            mock_store.async_load = AsyncMock(
+                return_value={
+                    "dismissed": ["suggestion_1", "suggestion_2"],
+                    "notified": ["suggestion_3"],
+                }
+            )
             mock_store_class.return_value = mock_store
 
             coordinator = AutomationSuggestionsCoordinator(hass, config_entry)

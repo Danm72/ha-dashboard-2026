@@ -20,7 +20,15 @@ HIGH_CONFIDENCE_THRESHOLD = 0.80
 
 # Domains to track
 TRACKED_DOMAINS = [
-    "light", "switch", "cover", "climate", "scene", "script",
-    "input_number", "input_boolean", "input_select",
-    "input_datetime", "input_button"
+    "light",
+    "switch",
+    "cover",
+    "climate",
+    "scene",
+    "script",
+    "input_number",
+    "input_boolean",
+    "input_select",
+    "input_datetime",
+    "input_button",
 ]

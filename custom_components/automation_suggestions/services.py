@@ -46,18 +46,14 @@ def _get_coordinator(hass: HomeAssistant) -> AutomationSuggestionsCoordinator:
     entries: list[ConfigEntry] = hass.config_entries.async_entries(DOMAIN)
 
     if not entries:
-        raise HomeAssistantError(
-            f"Integration {DOMAIN} is not set up"
-        )
+        raise HomeAssistantError(f"Integration {DOMAIN} is not set up")
 
     # Get the first (and typically only) coordinator from runtime_data
     for entry in entries:
         if hasattr(entry, "runtime_data") and entry.runtime_data is not None:
             return entry.runtime_data
 
-    raise HomeAssistantError(
-        f"No coordinator found for {DOMAIN}. Is the integration configured?"
-    )
+    raise HomeAssistantError(f"No coordinator found for {DOMAIN}. Is the integration configured?")
 
 
 async def async_handle_analyze_now(call: ServiceCall) -> None:
