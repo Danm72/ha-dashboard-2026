@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "auth",
+  "data": {
+    "users": [
+      {
+        "id": "6403a2302adf8b65e364405d0d4ed136",
+        "group_ids": [
+          "system-admin"
+        ],
+        "is_owner": true,
+        "is_active": true,
+        "name": "test",
+        "system_generated": false,
+        "local_only": false
+      }
+    ],
+    "groups": [
+      {
+        "id": "system-admin",
+        "name": "Administrators"
+      },
+      {
+        "id": "system-users",
+        "name": "Users"
+      },
+      {
+        "id": "system-read-only",
+        "name": "Read Only"
+      }
+    ],
+    "credentials": [
+      {
+        "id": "27d17ede14b6d0acd4ddada332c21570",
+        "user_id": "6403a2302adf8b65e364405d0d4ed136",
+        "auth_provider_type": "homeassistant",
+        "auth_provider_id": null,
+        "data": {
+          "username": "test"
+        }
+      }
+    ],
+    "refresh_tokens": [
+      {
+        "id": "4cc11f38b7432da59528e2d864ea581c",
+        "user_id": "6403a2302adf8b65e364405d0d4ed136",
+        "client_id": null,
+        "client_name": "E2E Tests",
+        "client_icon": null,
+        "token_type": "long_lived_access_token",
+        "created_at": "2026-01-23T14:33:34.393617+00:00",
+        "access_token_expiration": 315360000.0,
+        "token": "2263272fe2898b987186a428307cecd4e44e663a1a3d5102e1ba5762962abedcb614a975c0bec75cd6e12cf6c4845d5df4a17566af2b7e570699177f7e7cb740",
+        "jwt_key": "481da4f2cfe026fbcb980458a959be0c56fe2a7777f9175a71b156fa10c5f634c11301097a754cc3a69004042cb2b4df9155bfc54774cdd2734d139fc36e3685",
+        "last_used_at": null,
+        "last_used_ip": null,
+        "expire_at": null,
+        "credential_id": null,
+        "version": "2024.1.0"
+      }
+    ]
+  }
+}

@@ -615,7 +615,7 @@ async def analyze_patterns_async(
         event_processor = EventProcessor(
             hass,
             event_types=(),  # We want state changes, not specific events
-            entity_ids=tuple(tracked_entity_ids),
+            entity_ids=tracked_entity_ids,  # Must be a list, not tuple
             device_ids=None,
         )
 
@@ -651,7 +651,11 @@ async def analyze_patterns_async(
             consistency_threshold, dismissed_suggestions
         )
     except Exception as err:
-        _LOGGER.warning("Error querying logbook: %s, falling back to state history", err)
+        import traceback
+        _LOGGER.warning(
+            "Error querying logbook: %s (%s), falling back to state history. Traceback: %s",
+            err, type(err).__name__, traceback.format_exc()
+        )
         return await _analyze_via_state_history(
             hass, start_time, end_time, min_occurrences,
             consistency_threshold, dismissed_suggestions

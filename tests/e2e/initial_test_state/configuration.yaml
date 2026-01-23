@@ -1,6 +1,23 @@
-default_config:
+# E2E Test Configuration
+homeassistant:
+  name: E2E Test Home
+  unit_system: metric
+  time_zone: UTC
 
+# Enable recorder for history
 recorder:
-  purge_keep_days: 5
+  purge_keep_days: 30
+  commit_interval: 1
 
+# Enable logbook
+logbook:
+
+# Demo platform for test entities
+light:
+  - platform: demo
+
+switch:
+  - platform: demo
+
+# Our custom component
 automation_suggestions:
