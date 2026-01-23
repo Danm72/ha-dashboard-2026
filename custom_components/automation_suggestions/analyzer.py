@@ -499,8 +499,6 @@ async def analyze_patterns_async(
     Returns:
         List of Suggestion objects, filtered to exclude dismissed ones.
     """
-    from homeassistant.components.logbook import async_log_has_entries_for_day
-    from homeassistant.components.logbook.processor import EventProcessor
     from homeassistant.components.recorder import get_instance
     from homeassistant.components.recorder.history import get_significant_states
     from homeassistant.util import dt as dt_util

@@ -9,6 +9,12 @@
           "lookback_days": "Days of history to analyze",
           "min_occurrences": "Minimum occurrences for pattern",
           "consistency_threshold": "Consistency threshold (0-1)"
+        },
+        "data_description": {
+          "analysis_interval": "How often to scan your logbook for patterns. Lower values find patterns faster but use more resources.",
+          "lookback_days": "How many days of history to analyze. More days = better pattern detection, but slower analysis.",
+          "min_occurrences": "How many times you must repeat an action before it's suggested as an automation. Lower values suggest more automations.",
+          "consistency_threshold": "How consistent the timing must be (0.7 = 70%). Higher values only suggest actions you do at very regular times."
         }
       }
     },
@@ -28,6 +34,12 @@
           "lookback_days": "Days of history to analyze",
           "min_occurrences": "Minimum occurrences for pattern",
           "consistency_threshold": "Consistency threshold (0-1)"
+        },
+        "data_description": {
+          "analysis_interval": "How often to scan your logbook for patterns. Lower values find patterns faster but use more resources.",
+          "lookback_days": "How many days of history to analyze. More days = better pattern detection, but slower analysis.",
+          "min_occurrences": "How many times you must repeat an action before it's suggested as an automation. Lower values suggest more automations.",
+          "consistency_threshold": "How consistent the timing must be (0.7 = 70%). Higher values only suggest actions you do at very regular times."
         }
       }
     }

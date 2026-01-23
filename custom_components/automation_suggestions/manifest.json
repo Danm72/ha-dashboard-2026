@@ -3,7 +3,7 @@
   "name": "Automation Suggestions",
   "codeowners": ["@Danm72"],
   "config_flow": true,
-  "dependencies": ["recorder"],
+  "dependencies": ["logbook", "recorder"],
   "documentation": "https://github.com/Danm72/home-assistant-automation-suggestions",
   "integration_type": "service",
   "iot_class": "local_polling",
