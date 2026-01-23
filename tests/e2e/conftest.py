@@ -22,6 +22,26 @@ from testcontainers.core.container import DockerContainer
 logger = logging.getLogger(__name__)
 
 
+# Auto-detect Docker socket location for Docker Desktop on macOS
+def _configure_docker_socket():
+    """Configure Docker socket for Docker Desktop on macOS."""
+    import os
+    import platform
+
+    if os.environ.get("DOCKER_HOST"):
+        return  # Already configured
+
+    if platform.system() == "Darwin":
+        # Docker Desktop on Mac uses this socket location
+        mac_socket = os.path.expanduser("~/.docker/run/docker.sock")
+        if os.path.exists(mac_socket):
+            os.environ["DOCKER_HOST"] = f"unix://{mac_socket}"
+            logger.info(f"Auto-configured DOCKER_HOST={os.environ['DOCKER_HOST']}")
+
+
+_configure_docker_socket()
+
+
 def pytest_configure(config):
     """Configure pytest to allow socket for e2e tests."""
     config.addinivalue_line(

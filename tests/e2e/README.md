@@ -34,10 +34,10 @@ To run authenticated tests, you need to create a test token:
 ## Running Tests
 
 ```bash
-# Run e2e tests (skips auth tests if token not set)
-pytest tests/e2e/ -v -m e2e
+# Run e2e tests (requires -p flags to disable socket blocking)
+pytest tests/e2e/ -v -m e2e -p no:homeassistant -p no:socket
 
-# Run all tests except e2e
+# Run all tests except e2e (these use mocked HA environment)
 pytest -m "not e2e"
 ```
 
