@@ -595,19 +595,41 @@ async def analyze_patterns_async(
 
     try:
         # Import logbook internals
-        from homeassistant.components.logbook import (
-            async_log_entries,
+        from homeassistant.components.logbook.processor import EventProcessor
+        from homeassistant.components.recorder import get_instance
+
+        # Get entity IDs for tracked domains
+        tracked_entity_ids: list[str] = []
+        for state in hass.states.async_all():
+            domain = state.entity_id.split(".")[0]
+            if domain in TRACKED_DOMAINS:
+                tracked_entity_ids.append(state.entity_id)
+
+        if not tracked_entity_ids:
+            _LOGGER.debug("No entities found in tracked domains")
+            return []
+
+        _LOGGER.debug("Found %d entities in tracked domains", len(tracked_entity_ids))
+
+        # Create event processor for our tracked entities
+        event_processor = EventProcessor(
+            hass,
+            event_types=(),  # We want state changes, not specific events
+            entity_ids=tuple(tracked_entity_ids),
+            device_ids=None,
         )
 
-        # Get logbook entries using the internal async function
-        logbook_entries = await async_log_entries(
-            hass,
-            start_time,
-            end_time,
-            None,  # entity_ids - None means all
-            None,  # filters
-            None,  # context_id
+        # Get events from the logbook (runs in executor since it's sync)
+        def _get_logbook_events():
+            events = list(event_processor.get_events(start_time, end_time))
+            return [event_processor.humanify(e) for e in events]
+
+        logbook_rows = await get_instance(hass).async_add_executor_job(
+            lambda: list(event_processor.get_events(start_time, end_time))
         )
+
+        # Humanify the rows (convert to readable format with context)
+        logbook_entries = list(event_processor.humanify(logbook_rows))
 
         # Convert logbook entries to our format
         for entry in logbook_entries:
@@ -620,11 +642,10 @@ async def analyze_patterns_async(
                 "context_domain": entry.get("context_domain"),
             })
 
-        _LOGGER.debug("Retrieved %d logbook entries via internal API", len(entries))
+        _LOGGER.info("Retrieved %d logbook entries via EventProcessor", len(entries))
 
     except ImportError as ie:
-        _LOGGER.debug("Logbook async_log_entries not available: %s", ie)
-        # Fall back to state history
+        _LOGGER.debug("Logbook EventProcessor not available: %s", ie)
         return await _analyze_via_state_history(
             hass, start_time, end_time, min_occurrences,
             consistency_threshold, dismissed_suggestions
