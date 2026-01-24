@@ -10,8 +10,8 @@ A custom Home Assistant integration that analyzes your manual actions from the l
 - **Time-based Suggestions**: Identifies actions performed at consistent times (e.g., turning on lights every evening at 7pm)
 - **Configurable Thresholds**: Adjust sensitivity via options flow to match your preferences
 - **Rich Sensors**: Exposes suggestion count, top suggestions, and last analysis time
-- **On-demand Services**: `analyze_now` to trigger analysis, `dismiss` to hide unwanted suggestions
-- **Persistent Notifications**: Alerts you to high-confidence suggestions (80%+)
+- **On-demand Actions**: `analyze_now` to trigger analysis, `dismiss` to hide unwanted suggestions
+- **Persistent Notifications**: Shows all suggestions after each analysis run - no dev tools needed
 
 ## Installation via HACS
 
@@ -37,9 +37,11 @@ A custom Home Assistant integration that analyzes your manual actions from the l
 
 ### Quick Start
 
-1. **Run your first analysis**: Go to **Developer Tools → Services** and call `automation_suggestions.analyze_now`
-2. **View results**: Go to **Developer Tools → States** and search for `sensor.automation_suggestions_top`
-3. **Check attributes**: Click the sensor to see the `suggestions` attribute with your top 5 suggestions
+1. **Install the integration**: Go to Settings → Devices & Services → Add Integration → "Automation Suggestions"
+2. **Wait for notification**: Analysis runs automatically on install. You'll see a notification with your suggestions.
+3. **Create automations**: Use the suggestions to create automations in Settings → Automations & Scenes
+
+**Want to run analysis again?** Call `automation_suggestions.analyze_now` from Developer Tools → Actions.
 
 ### Entities Created
 
@@ -64,18 +66,18 @@ Each suggestion in `sensor.automation_suggestions_top` attributes includes:
 | `occurrence_count` | `12` | Total times this pattern was detected |
 | `id` | `light_kitchen_turn_on_07_00` | Unique ID (use with dismiss service) |
 
-## Services
+## Actions
 
 ### `automation_suggestions.analyze_now`
 
 Trigger immediate pattern analysis instead of waiting for the scheduled interval.
 
 **Use cases:**
-- After first installation to see initial suggestions
 - After adjusting configuration options
 - To refresh suggestions after dismissing some
+- To re-run analysis before the scheduled interval
 
-**How to call:** Developer Tools → Services → `automation_suggestions.analyze_now` → Call Service
+**How to call:** Developer Tools → Actions → `automation_suggestions.analyze_now` → Call Service
 
 ### `automation_suggestions.dismiss`
 
