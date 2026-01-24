@@ -22,6 +22,7 @@ from extract_manual_actions import (
     extract_action_from_entry,
     find_automation_candidates,
     format_time_range,
+    get_ha_base_url,
     get_ha_token,
     get_logbook_entries,
     get_time_window,
@@ -842,6 +843,32 @@ class TestGetHaToken:
             get_ha_token()
 
         assert "No Home Assistant token found" in str(excinfo.value)
+
+
+class TestGetHaBaseUrl:
+    """Tests for the get_ha_base_url function."""
+
+    @patch.dict("os.environ", {"HOMEASSISTANT_URL": "http://homeassistant.local:8123"})
+    def test_returns_url_from_env_var(self):
+        """Should return URL from environment variable."""
+        result = get_ha_base_url()
+        assert result == "http://homeassistant.local:8123"
+
+    @patch.dict("os.environ", {"HOMEASSISTANT_URL": "http://192.168.1.100:8123/"})
+    def test_strips_trailing_slash(self):
+        """Should remove trailing slash from URL."""
+        result = get_ha_base_url()
+        assert result == "http://192.168.1.100:8123"
+
+    @patch.dict("os.environ", {}, clear=True)
+    def test_returns_default_when_no_env_var(self):
+        """Should return hardcoded default when env var not set."""
+        import os
+        if "HOMEASSISTANT_URL" in os.environ:
+            del os.environ["HOMEASSISTANT_URL"]
+
+        result = get_ha_base_url()
+        assert result == "http://192.168.1.217:8123"
 
 
 # =============================================================================

@@ -33,6 +33,16 @@ def get_ha_token():
     )
 
 
+def get_ha_base_url():
+    """Get Home Assistant base URL from env var or use default."""
+    url = os.environ.get("HOMEASSISTANT_URL")
+    if url:
+        return url.rstrip('/')  # Remove trailing slash if present
+
+    # Return hardcoded default if no env var
+    return "http://192.168.1.217:8123"
+
+
 def get_logbook_entries(base_url, token, start_time, end_time, entity_id=None):
     """Query the Home Assistant logbook API."""
     headers = {
@@ -290,8 +300,8 @@ def main():
     )
     parser.add_argument(
         "--base-url",
-        default="http://192.168.1.217:8123",
-        help="Home Assistant base URL (default: http://192.168.1.217:8123)"
+        default=get_ha_base_url(),
+        help="Home Assistant base URL (env: HOMEASSISTANT_URL, default: http://192.168.1.217:8123)"
     )
     parser.add_argument(
         "--min-occurrences",
