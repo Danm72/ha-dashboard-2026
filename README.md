@@ -9,6 +9,7 @@ A custom Home Assistant integration that analyzes your manual actions from the l
 - **Pattern Detection**: Analyzes logbook history to find repeated manual actions
 - **Time-based Suggestions**: Identifies actions performed at consistent times (e.g., turning on lights every evening at 7pm)
 - **Configurable Thresholds**: Adjust sensitivity via options flow to match your preferences
+- **User & Domain Filtering**: Exclude service accounts, children, or specific integration domains from analysis
 - **Rich Sensors**: Exposes suggestion count, top suggestions, and last analysis time
 - **On-demand Actions**: `analyze_now` to trigger analysis, `dismiss` to hide unwanted suggestions
 - **Persistent Notifications**: Shows all suggestions after each analysis run - no dev tools needed
@@ -32,6 +33,46 @@ A custom Home Assistant integration that analyzes your manual actions from the l
 | Lookback Days | 14 | How far back to analyze history |
 | Min Occurrences | 2 | Minimum times an action must occur to be suggested |
 | Consistency Threshold | 30% | How consistent the timing must be |
+| User Filter Mode | none | Filter users: `none`, `exclude`, or `include` |
+| Filtered Users | (empty) | Comma-separated user IDs to filter |
+| Domain Filter Mode | none | Filter domains: `none`, `exclude`, or `include` |
+| Filtered Domains | (empty) | Comma-separated context domains to filter |
+
+## Filtering Users and Domains
+
+Control which actions are analyzed by filtering users or domains.
+
+### Use Cases
+
+- **Service accounts**: Exclude Node-RED, AppDaemon, or other automation tool users
+- **Children**: Don't base suggestions on kids' irregular usage patterns
+- **Guests**: Ignore temporary users
+- **Integration noise**: Filter out specific integration domains
+
+### How to Configure
+
+1. Go to **Settings → Devices & Services → Automation Suggestions**
+2. Click **Configure**
+3. Choose a filter mode:
+   - `none` - Analyze all actions (default)
+   - `exclude` - Analyze all EXCEPT the listed users/domains
+   - `include` - ONLY analyze the listed users/domains
+4. Enter user IDs or domain names (comma-separated)
+
+### Finding User IDs
+
+User IDs are UUIDs that identify Home Assistant users. To find them:
+1. Go to **Settings → People**
+2. Click on a user
+3. The URL will contain the user ID (e.g., `/config/users/detail/abc123-def456-...`)
+
+### Common Domain Filters
+
+| Domain | Use Case |
+|--------|----------|
+| `nodered` | Node-RED automations |
+| `appdaemon` | AppDaemon scripts |
+| `pyscript` | Python scripts |
 
 ## Finding Your Suggestions
 
