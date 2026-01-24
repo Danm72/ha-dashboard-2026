@@ -127,7 +127,13 @@ class Suggestion:
 # -----------------------------------------------------------------------------
 
 
-def is_manual_action(entry: dict[str, Any]) -> bool:
+def is_manual_action(
+    entry: dict[str, Any],
+    excluded_users: set[str] | None = None,
+    included_users: set[str] | None = None,
+    excluded_domains: set[str] | None = None,
+    included_domains: set[str] | None = None,
+) -> bool:
     """Check if a logbook entry represents a manual user action.
 
     Uses exclusion-based logic: an action is considered manual unless
@@ -136,6 +142,18 @@ def is_manual_action(entry: dict[str, Any]) -> bool:
 
     Args:
         entry: A logbook entry dictionary from Home Assistant.
+        excluded_users: Set of user IDs to exclude (exclude mode). If a user ID
+            is in this set, the action is not considered manual. Entries without
+            a context_user_id are kept (no user to exclude).
+        included_users: Set of user IDs to include (include mode). Only actions
+            from these users are considered manual. Entries without a
+            context_user_id are skipped (no user match).
+        excluded_domains: Set of context domains to exclude. If the context_domain
+            is in this set, the action is not considered manual. Entries without
+            a context_domain are kept (no domain to exclude).
+        included_domains: Set of context domains to include (include mode). Only
+            actions with a matching context_domain are considered manual. Entries
+            without a context_domain are skipped (no domain match).
 
     Returns:
         True if the action was triggered by a user manually, False otherwise.
@@ -164,8 +182,25 @@ def is_manual_action(entry: dict[str, Any]) -> bool:
             if pattern in source:
                 return False
 
-    # If we have a valid context_user_id (not placeholder "unknown"), it's definitely manual
+    # Apply user filtering
     context_user_id = entry.get("context_user_id")
+    if excluded_users and context_user_id and context_user_id in excluded_users:
+        return False
+    if included_users:
+        # Include mode: must have a matching user_id
+        if not context_user_id or context_user_id not in included_users:
+            return False
+
+    # Apply domain filtering (on context_domain, not entity domain)
+    context_domain = entry.get("context_domain", "")
+    if excluded_domains and context_domain and context_domain in excluded_domains:
+        return False
+    if included_domains:
+        # Include mode: must have a matching domain
+        if not context_domain or context_domain not in included_domains:
+            return False
+
+    # If we have a valid context_user_id (not placeholder "unknown"), it's definitely manual
     if context_user_id and context_user_id != "unknown":
         return True
 
@@ -490,6 +525,11 @@ def analyze_logbook_entries(
     min_occurrences: int,
     consistency_threshold: float,
     window_minutes: int = DEFAULT_TIME_WINDOW_MINUTES,
+    dismissed_suggestions: set[str] | None = None,
+    excluded_users: set[str] | None = None,
+    included_users: set[str] | None = None,
+    excluded_domains: set[str] | None = None,
+    included_domains: set[str] | None = None,
 ) -> list[Suggestion]:
     """Analyze logbook entries and return suggestions.
 
@@ -501,6 +541,15 @@ def analyze_logbook_entries(
         min_occurrences: Minimum occurrences for a suggestion.
         consistency_threshold: Minimum consistency score (0-1).
         window_minutes: Size of time window in minutes.
+        dismissed_suggestions: Set of suggestion IDs to exclude from results.
+        excluded_users: Set of user IDs to exclude (exclude mode). If a user ID
+            is in this set, the action is not considered manual.
+        included_users: Set of user IDs to include (include mode). Only actions
+            from these users are considered manual.
+        excluded_domains: Set of context domains to exclude. If the context_domain
+            is in this set, the action is not considered manual.
+        included_domains: Set of context domains to include (include mode). Only
+            actions with a matching context_domain are considered manual.
 
     Returns:
         List of Suggestion objects.
@@ -519,7 +568,9 @@ def analyze_logbook_entries(
             continue
 
         # Check if it's a manual action
-        if not is_manual_action(entry):
+        if not is_manual_action(
+            entry, excluded_users, included_users, excluded_domains, included_domains
+        ):
             continue
 
         # Extract action and timestamp
@@ -668,10 +719,14 @@ async def _analyze_via_state_history(
 
 async def analyze_patterns_async(
     hass: HomeAssistant,
-    lookback_days: int,
-    min_occurrences: int,
-    consistency_threshold: float,
-    dismissed_suggestions: set[str],
+    lookback_days: int = 14,
+    min_occurrences: int = 5,
+    consistency_threshold: float = 0.70,
+    dismissed_suggestions: set[str] | None = None,
+    excluded_users: set[str] | None = None,
+    included_users: set[str] | None = None,
+    excluded_domains: set[str] | None = None,
+    included_domains: set[str] | None = None,
 ) -> list[Suggestion]:
     """Analyze patterns asynchronously using Home Assistant APIs.
 
@@ -685,6 +740,14 @@ async def analyze_patterns_async(
         min_occurrences: Minimum occurrences to suggest automation.
         consistency_threshold: Minimum consistency score (0-1).
         dismissed_suggestions: Set of suggestion IDs to filter out.
+        excluded_users: Set of user IDs to exclude (exclude mode). If a user ID
+            is in this set, the action is not considered manual.
+        included_users: Set of user IDs to include (include mode). Only actions
+            from these users are considered manual.
+        excluded_domains: Set of context domains to exclude. If the context_domain
+            is in this set, the action is not considered manual.
+        included_domains: Set of context domains to include (include mode). Only
+            actions with a matching context_domain are considered manual.
 
     Returns:
         List of Suggestion objects, filtered to exclude dismissed ones.
@@ -815,6 +878,11 @@ async def analyze_patterns_async(
         min_occurrences,
         consistency_threshold,
         DEFAULT_TIME_WINDOW_MINUTES,
+        dismissed_suggestions,
+        excluded_users,
+        included_users,
+        excluded_domains,
+        included_domains,
     )
 
     # Populate friendly names from current state
@@ -824,7 +892,10 @@ async def analyze_patterns_async(
             suggestion.friendly_name = state.attributes.get("friendly_name", suggestion.entity_id)
 
     # Filter out dismissed suggestions
-    filtered_suggestions = [s for s in suggestions if s.id not in dismissed_suggestions]
+    if dismissed_suggestions:
+        filtered_suggestions = [s for s in suggestions if s.id not in dismissed_suggestions]
+    else:
+        filtered_suggestions = suggestions
 
     _LOGGER.info(
         "Pattern analysis complete: %d suggestions (%d after filtering dismissed)",

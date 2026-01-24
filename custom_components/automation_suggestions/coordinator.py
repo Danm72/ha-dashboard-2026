@@ -22,12 +22,20 @@ from .analyzer import Suggestion, analyze_patterns_async
 from .const import (
     CONF_ANALYSIS_INTERVAL,
     CONF_CONSISTENCY_THRESHOLD,
+    CONF_DOMAIN_FILTER_MODE,
+    CONF_FILTERED_DOMAINS,
+    CONF_FILTERED_USERS,
     CONF_LOOKBACK_DAYS,
     CONF_MIN_OCCURRENCES,
+    CONF_USER_FILTER_MODE,
     DEFAULT_ANALYSIS_INTERVAL,
     DEFAULT_CONSISTENCY_THRESHOLD,
+    DEFAULT_DOMAIN_FILTER_MODE,
+    DEFAULT_FILTERED_DOMAINS,
+    DEFAULT_FILTERED_USERS,
     DEFAULT_LOOKBACK_DAYS,
     DEFAULT_MIN_OCCURRENCES,
+    DEFAULT_USER_FILTER_MODE,
     DOMAIN,
 )
 
@@ -90,6 +98,28 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
         self._consistency_threshold: float = entry.options.get(
             CONF_CONSISTENCY_THRESHOLD,
             entry.data.get(CONF_CONSISTENCY_THRESHOLD, DEFAULT_CONSISTENCY_THRESHOLD),
+        )
+
+        # Cache filter config
+        self._user_filter_mode: str = entry.options.get(
+            CONF_USER_FILTER_MODE,
+            entry.data.get(CONF_USER_FILTER_MODE, DEFAULT_USER_FILTER_MODE),
+        )
+        self._filtered_users: set[str] = set(
+            entry.options.get(
+                CONF_FILTERED_USERS,
+                entry.data.get(CONF_FILTERED_USERS, DEFAULT_FILTERED_USERS),
+            )
+        )
+        self._domain_filter_mode: str = entry.options.get(
+            CONF_DOMAIN_FILTER_MODE,
+            entry.data.get(CONF_DOMAIN_FILTER_MODE, DEFAULT_DOMAIN_FILTER_MODE),
+        )
+        self._filtered_domains: set[str] = set(
+            entry.options.get(
+                CONF_FILTERED_DOMAINS,
+                entry.data.get(CONF_FILTERED_DOMAINS, DEFAULT_FILTERED_DOMAINS),
+            )
         )
 
         _LOGGER.debug(
@@ -252,6 +282,18 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
                 min_occurrences=self._min_occurrences,
                 consistency_threshold=self._consistency_threshold,
                 dismissed_suggestions=self._dismissed,
+                excluded_users=self._filtered_users
+                if self._user_filter_mode == "exclude"
+                else None,
+                included_users=self._filtered_users
+                if self._user_filter_mode == "include"
+                else None,
+                excluded_domains=self._filtered_domains
+                if self._domain_filter_mode == "exclude"
+                else None,
+                included_domains=self._filtered_domains
+                if self._domain_filter_mode == "include"
+                else None,
             )
 
             _LOGGER.info("Pattern analysis complete: found %d suggestions", len(suggestions))
@@ -290,6 +332,28 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
         self._consistency_threshold = entry.options.get(
             CONF_CONSISTENCY_THRESHOLD,
             entry.data.get(CONF_CONSISTENCY_THRESHOLD, DEFAULT_CONSISTENCY_THRESHOLD),
+        )
+
+        # Update filter config
+        self._user_filter_mode = entry.options.get(
+            CONF_USER_FILTER_MODE,
+            entry.data.get(CONF_USER_FILTER_MODE, DEFAULT_USER_FILTER_MODE),
+        )
+        self._filtered_users = set(
+            entry.options.get(
+                CONF_FILTERED_USERS,
+                entry.data.get(CONF_FILTERED_USERS, DEFAULT_FILTERED_USERS),
+            )
+        )
+        self._domain_filter_mode = entry.options.get(
+            CONF_DOMAIN_FILTER_MODE,
+            entry.data.get(CONF_DOMAIN_FILTER_MODE, DEFAULT_DOMAIN_FILTER_MODE),
+        )
+        self._filtered_domains = set(
+            entry.options.get(
+                CONF_FILTERED_DOMAINS,
+                entry.data.get(CONF_FILTERED_DOMAINS, DEFAULT_FILTERED_DOMAINS),
+            )
         )
 
         # Update the polling interval

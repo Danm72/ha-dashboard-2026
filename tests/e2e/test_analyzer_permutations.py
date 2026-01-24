@@ -155,9 +155,7 @@ class TestAnalyzerPermutations:
         print("\n" + "=" * 60)
         print("=== Summary Table ===")
         print("=" * 60)
-        print(
-            f"{'Lookback':>8} | {'MinOcc':>6} | {'Threshold':>9} | {'Count':>5}"
-        )
+        print(f"{'Lookback':>8} | {'MinOcc':>6} | {'Threshold':>9} | {'Count':>5}")
         print("-" * 40)
 
         for r in results:
@@ -177,9 +175,9 @@ class TestAnalyzerPermutations:
             pytest.skip("This test only runs in --live mode")
 
         resp = ha_api("GET", "/api/logbook")
-        assert resp.status_code == 200, (
-            f"Logbook API should be accessible, got {resp.status_code}: {resp.text}"
-        )
+        assert (
+            resp.status_code == 200
+        ), f"Logbook API should be accessible, got {resp.status_code}: {resp.text}"
 
     def test_tracked_domains_coverage(self, ha_api, is_live_mode):
         """Check which tracked domains have entries in the logbook."""
@@ -205,9 +203,7 @@ class TestAnalyzerPermutations:
                 print(f"  {domain}: {count} entries")
 
         print("\nOther domains with entries:")
-        for domain, count in sorted(
-            domain_counts.items(), key=lambda x: x[1], reverse=True
-        ):
+        for domain, count in sorted(domain_counts.items(), key=lambda x: x[1], reverse=True):
             if domain not in TRACKED_DOMAINS:
                 print(f"  {domain}: {count} entries")
 

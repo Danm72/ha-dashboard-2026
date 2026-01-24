@@ -34,6 +34,7 @@ from extract_manual_actions import (
 # 1. NoneType Bug Fix Tests (CRITICAL)
 # =============================================================================
 
+
 class TestNoneTypeBugFix:
     """Tests for the NoneType bug fix when entity_id is null."""
 
@@ -102,6 +103,7 @@ class TestNoneTypeBugFix:
 # =============================================================================
 # 2. is_manual_action Function Tests
 # =============================================================================
+
 
 class TestIsManualAction:
     """Tests for the is_manual_action function."""
@@ -195,6 +197,7 @@ class TestIsManualAction:
 # =============================================================================
 # 3. extract_action_from_entry Function Tests
 # =============================================================================
+
 
 class TestExtractActionFromEntry:
     """Tests for the extract_action_from_entry function."""
@@ -331,6 +334,7 @@ class TestExtractActionFromEntry:
 # 4. parse_timestamp Function Tests
 # =============================================================================
 
+
 class TestParseTimestamp:
     """Tests for the parse_timestamp function."""
 
@@ -399,19 +403,23 @@ class TestParseTimestamp:
         result = parse_timestamp("not-a-timestamp")
         assert result is None
 
-    def test_returns_none_for_partial_timestamp(self):
-        """Should return None for partial timestamp."""
+    def test_parses_date_only_timestamp(self):
+        """Should parse date-only string as datetime at midnight (Python 3.11+)."""
         result = parse_timestamp("2025-01-20")
-        # This should actually parse as a date, check behavior
         # datetime.fromisoformat handles date-only strings in Python 3.11+
-        # The function might return a datetime or None depending on version
-        # For this test, we accept either behavior
-        pass  # Skip assertion - implementation dependent
+        assert result is not None
+        assert result.year == 2025
+        assert result.month == 1
+        assert result.day == 20
+        assert result.hour == 0
+        assert result.minute == 0
+        assert result.second == 0
 
 
 # =============================================================================
 # 5. get_time_window Function Tests
 # =============================================================================
+
 
 class TestGetTimeWindow:
     """Tests for the get_time_window function."""
@@ -487,6 +495,7 @@ class TestGetTimeWindow:
 # 6. format_time_range Function Tests
 # =============================================================================
 
+
 class TestFormatTimeRange:
     """Tests for the format_time_range function."""
 
@@ -540,6 +549,7 @@ class TestFormatTimeRange:
 # =============================================================================
 # 7. find_automation_candidates Function Tests
 # =============================================================================
+
 
 class TestFindAutomationCandidates:
     """Tests for the find_automation_candidates function."""
@@ -620,7 +630,7 @@ class TestFindAutomationCandidates:
                     "hours": [22, 22, 22, 22, 22],
                     "time_range": "22:00",
                 }
-            }
+            },
         }
         result = find_automation_candidates(patterns, min_occurrences=3)
         assert len(result) == 2
@@ -703,7 +713,7 @@ class TestFindAutomationCandidates:
                     "window_count": 5,
                     "hours": [22, 22, 22, 22, 22],
                     "time_range": "22:00",
-                }
+                },
             }
         }
         result = find_automation_candidates(patterns, min_occurrences=3)
@@ -720,6 +730,7 @@ class TestFindAutomationCandidates:
 # API Integration Tests (Mocked)
 # =============================================================================
 
+
 class TestGetLogbookEntries:
     """Tests for the get_logbook_entries function with mocked requests."""
 
@@ -734,12 +745,7 @@ class TestGetLogbookEntries:
         start_time = datetime(2025, 1, 20, 0, 0, 0)
         end_time = datetime(2025, 1, 21, 0, 0, 0)
 
-        get_logbook_entries(
-            "http://192.168.1.217:8123",
-            "test_token",
-            start_time,
-            end_time
-        )
+        get_logbook_entries("http://192.168.1.217:8123", "test_token", start_time, end_time)
 
         mock_get.assert_called_once()
         call_args = mock_get.call_args
@@ -770,10 +776,7 @@ class TestGetLogbookEntries:
         end_time = datetime(2025, 1, 21, 0, 0, 0)
 
         result = get_logbook_entries(
-            "http://192.168.1.217:8123",
-            "test_token",
-            start_time,
-            end_time
+            "http://192.168.1.217:8123", "test_token", start_time, end_time
         )
 
         assert result == expected_entries
@@ -794,7 +797,7 @@ class TestGetLogbookEntries:
             "test_token",
             start_time,
             end_time,
-            entity_id="light.living_room"
+            entity_id="light.living_room",
         )
 
         call_args = mock_get.call_args
@@ -816,6 +819,7 @@ class TestGetHaToken:
         """Should return token from file when env var not set."""
         # Remove HA_TOKEN from env if present
         import os
+
         if "HA_TOKEN" in os.environ:
             del os.environ["HA_TOKEN"]
 
@@ -832,6 +836,7 @@ class TestGetHaToken:
     def test_raises_when_no_token_found(self, mock_path_class):
         """Should raise ValueError when no token source available."""
         import os
+
         if "HA_TOKEN" in os.environ:
             del os.environ["HA_TOKEN"]
 
@@ -864,6 +869,7 @@ class TestGetHaBaseUrl:
     def test_returns_default_when_no_env_var(self):
         """Should return hardcoded default when env var not set."""
         import os
+
         if "HOMEASSISTANT_URL" in os.environ:
             del os.environ["HOMEASSISTANT_URL"]
 
@@ -874,6 +880,7 @@ class TestGetHaBaseUrl:
 # =============================================================================
 # 8. Malformed Logbook Entries Tests
 # =============================================================================
+
 
 class TestMalformedLogbookEntries:
     """

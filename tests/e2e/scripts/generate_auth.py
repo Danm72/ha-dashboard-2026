@@ -26,22 +26,18 @@ TEST_CONSTANTS_PATH = BASE_DIR / "tests" / "test_constants.py"
 
 def base64url_encode(data: bytes) -> str:
     """Base64url encode without padding."""
-    return base64.urlsafe_b64encode(data).rstrip(b'=').decode('ascii')
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
 
 def generate_jwt(payload: dict, secret: str) -> str:
     """Generate a JWT token."""
     header = {"alg": "HS256", "typ": "JWT"}
 
-    header_b64 = base64url_encode(json.dumps(header, separators=(',', ':')).encode())
-    payload_b64 = base64url_encode(json.dumps(payload, separators=(',', ':')).encode())
+    header_b64 = base64url_encode(json.dumps(header, separators=(",", ":")).encode())
+    payload_b64 = base64url_encode(json.dumps(payload, separators=(",", ":")).encode())
 
     message = f"{header_b64}.{payload_b64}"
-    signature = hmac.new(
-        secret.encode(),
-        message.encode(),
-        hashlib.sha256
-    ).digest()
+    signature = hmac.new(secret.encode(), message.encode(), hashlib.sha256).digest()
     signature_b64 = base64url_encode(signature)
 
     return f"{message}.{signature_b64}"
@@ -66,11 +62,7 @@ def main():
     exp = int(datetime(2035, 1, 1, tzinfo=UTC).timestamp())
     iat = int(now.timestamp())
 
-    jwt_payload = {
-        "iss": token_id,
-        "iat": iat,
-        "exp": exp
-    }
+    jwt_payload = {"iss": token_id, "iat": iat, "exp": exp}
 
     access_token = generate_jwt(jwt_payload, jwt_key)
     token_hash = generate_token_hash(raw_token)
@@ -89,13 +81,13 @@ def main():
                     "is_active": True,
                     "name": "test",
                     "system_generated": False,
-                    "local_only": False
+                    "local_only": False,
                 }
             ],
             "groups": [
                 {"id": "system-admin", "name": "Administrators"},
                 {"id": "system-users", "name": "Users"},
-                {"id": "system-read-only", "name": "Read Only"}
+                {"id": "system-read-only", "name": "Read Only"},
             ],
             "credentials": [
                 {
@@ -103,7 +95,7 @@ def main():
                     "user_id": user_id,
                     "auth_provider_type": "homeassistant",
                     "auth_provider_id": None,
-                    "data": {"username": "test"}
+                    "data": {"username": "test"},
                 }
             ],
             "refresh_tokens": [
@@ -122,10 +114,10 @@ def main():
                     "last_used_ip": None,
                     "expire_at": None,
                     "credential_id": None,
-                    "version": "2024.1.0"
+                    "version": "2024.1.0",
                 }
-            ]
-        }
+            ],
+        },
     }
 
     # Create auth_provider file
@@ -138,10 +130,10 @@ def main():
             "users": [
                 {
                     "username": "test",
-                    "password": "$2b$12$LQv3c1yqBo9fkvVeHoVBu.NBY0pCc6bGm6Hk9ZLqWXCgE4FLUMYyK"
+                    "password": "$2b$12$LQv3c1yqBo9fkvVeHoVBu.NBY0pCc6bGm6Hk9ZLqWXCgE4FLUMYyK",
                 }
             ]
-        }
+        },
     }
 
     # Write auth files

@@ -8,13 +8,21 @@
           "analysis_interval": "Analysis interval (days)",
           "lookback_days": "Days of history to analyze",
           "min_occurrences": "Minimum occurrences for pattern",
-          "consistency_threshold": "Consistency threshold (0-1)"
+          "consistency_threshold": "Consistency threshold (0-1)",
+          "user_filter_mode": "Filter users",
+          "filtered_users": "User IDs to filter",
+          "domain_filter_mode": "Filter domains",
+          "filtered_domains": "Domains to filter"
         },
         "data_description": {
           "analysis_interval": "How often to scan your logbook for patterns. Lower values find patterns faster but use more resources.",
           "lookback_days": "How many days of history to analyze. More days = better pattern detection, but slower analysis.",
           "min_occurrences": "How many times you must repeat an action before it's suggested as an automation. Lower values suggest more automations.",
-          "consistency_threshold": "How consistent the timing must be (0.7 = 70%). Higher values only suggest actions you do at very regular times."
+          "consistency_threshold": "How consistent the timing must be (0.7 = 70%). Higher values only suggest actions you do at very regular times.",
+          "user_filter_mode": "Choose how to filter users: 'none' analyzes all users, 'exclude' ignores selected users, 'include' only analyzes selected users.",
+          "filtered_users": "Comma-separated list of user IDs (UUIDs) to filter. Leave empty if filter mode is 'none'.",
+          "domain_filter_mode": "Choose how to filter integration domains: 'none' analyzes all, 'exclude' ignores selected domains, 'include' only analyzes selected domains.",
+          "filtered_domains": "Comma-separated list of domains to filter (e.g., nodered, appdaemon, pyscript). Leave empty if filter mode is 'none'."
         }
       }
     },
@@ -34,13 +42,21 @@
           "analysis_interval": "Analysis interval (days)",
           "lookback_days": "Days of history to analyze",
           "min_occurrences": "Minimum occurrences for pattern",
-          "consistency_threshold": "Consistency threshold (0-1)"
+          "consistency_threshold": "Consistency threshold (0-1)",
+          "user_filter_mode": "Filter users",
+          "filtered_users": "User IDs to filter",
+          "domain_filter_mode": "Filter domains",
+          "filtered_domains": "Domains to filter"
         },
         "data_description": {
           "analysis_interval": "How often to scan your logbook for patterns. Lower values find patterns faster but use more resources.",
           "lookback_days": "How many days of history to analyze. More days = better pattern detection, but slower analysis.",
           "min_occurrences": "How many times you must repeat an action before it's suggested as an automation. Lower values suggest more automations.",
-          "consistency_threshold": "How consistent the timing must be (0.7 = 70%). Higher values only suggest actions you do at very regular times."
+          "consistency_threshold": "How consistent the timing must be (0.7 = 70%). Higher values only suggest actions you do at very regular times.",
+          "user_filter_mode": "Choose how to filter users: 'none' analyzes all users, 'exclude' ignores selected users, 'include' only analyzes selected users.",
+          "filtered_users": "Comma-separated list of user IDs (UUIDs) to filter. Leave empty if filter mode is 'none'.",
+          "domain_filter_mode": "Choose how to filter integration domains: 'none' analyzes all, 'exclude' ignores selected domains, 'include' only analyzes selected domains.",
+          "filtered_domains": "Comma-separated list of domains to filter (e.g., nodered, appdaemon, pyscript). Leave empty if filter mode is 'none'."
         }
       }
     }

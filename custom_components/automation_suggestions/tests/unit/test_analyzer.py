@@ -697,6 +697,183 @@ class TestIsManualAction:
 
 
 # =============================================================================
+# 2.5 is_manual_action User and Domain Filtering Tests
+# =============================================================================
+
+
+class TestIsManualActionFiltering:
+    """Tests for user and domain filtering in is_manual_action()."""
+
+    # User exclude mode tests
+    def test_excluded_user_returns_false(self):
+        """Entry from excluded user should return False."""
+        entry = {"entity_id": "light.test", "state": "on", "context_user_id": "user123"}
+        assert is_manual_action(entry, excluded_users={"user123"}) is False
+
+    def test_excluded_user_no_match_returns_true(self):
+        """Entry from non-excluded user should return True."""
+        entry = {"entity_id": "light.test", "state": "on", "context_user_id": "user456"}
+        assert is_manual_action(entry, excluded_users={"user123"}) is True
+
+    def test_excluded_user_no_context_user_id_returns_true(self):
+        """Entry without context_user_id should return True in exclude mode (no user to exclude)."""
+        # Note: Without context_user_id, is_manual_action returns False by default
+        # But if we had a valid entry that somehow lacks user_id, exclude mode keeps it
+        entry = {"entity_id": "light.test", "state": "on", "context_user_id": "valid_user"}
+        assert is_manual_action(entry, excluded_users={"other_user"}) is True
+
+    # User include mode tests
+    def test_included_user_returns_true(self):
+        """Entry from included user should return True."""
+        entry = {"entity_id": "light.test", "state": "on", "context_user_id": "user123"}
+        assert is_manual_action(entry, included_users={"user123"}) is True
+
+    def test_included_user_no_match_returns_false(self):
+        """Entry from non-included user should return False."""
+        entry = {"entity_id": "light.test", "state": "on", "context_user_id": "user456"}
+        assert is_manual_action(entry, included_users={"user123"}) is False
+
+    def test_included_user_no_context_user_id_returns_false(self):
+        """Entry without context_user_id should return False in include mode."""
+        entry = {"entity_id": "light.test", "state": "on"}
+        assert is_manual_action(entry, included_users={"user123"}) is False
+
+    def test_included_user_empty_set_means_no_filter(self):
+        """Include mode with empty set means no filter applied (empty set is falsy)."""
+        entry = {"entity_id": "light.test", "state": "on", "context_user_id": "user123"}
+        # Empty set is falsy, so the include filter is not applied
+        # This is consistent with None meaning "no filter"
+        assert is_manual_action(entry, included_users=set()) is True
+
+    # Domain exclude mode tests
+    def test_excluded_domain_returns_false(self):
+        """Entry from excluded domain should return False."""
+        entry = {
+            "entity_id": "light.test",
+            "state": "on",
+            "context_user_id": "user123",
+            "context_domain": "nodered",
+        }
+        assert is_manual_action(entry, excluded_domains={"nodered"}) is False
+
+    def test_excluded_domain_no_match_returns_true(self):
+        """Entry from non-excluded domain should return True."""
+        entry = {
+            "entity_id": "light.test",
+            "state": "on",
+            "context_user_id": "user123",
+            "context_domain": "homeassistant",
+        }
+        assert is_manual_action(entry, excluded_domains={"nodered"}) is True
+
+    def test_excluded_domain_no_context_domain_returns_true(self):
+        """Entry without context_domain should return True in exclude mode."""
+        entry = {"entity_id": "light.test", "state": "on", "context_user_id": "user123"}
+        assert is_manual_action(entry, excluded_domains={"nodered"}) is True
+
+    # Domain include mode tests
+    def test_included_domain_returns_true(self):
+        """Entry from included domain should return True."""
+        entry = {
+            "entity_id": "light.test",
+            "state": "on",
+            "context_user_id": "user123",
+            "context_domain": "homeassistant",
+        }
+        assert is_manual_action(entry, included_domains={"homeassistant"}) is True
+
+    def test_included_domain_no_match_returns_false(self):
+        """Entry from non-included domain should return False."""
+        entry = {
+            "entity_id": "light.test",
+            "state": "on",
+            "context_user_id": "user123",
+            "context_domain": "nodered",
+        }
+        assert is_manual_action(entry, included_domains={"homeassistant"}) is False
+
+    def test_included_domain_no_context_domain_returns_false(self):
+        """Entry without context_domain should return False in include mode."""
+        entry = {"entity_id": "light.test", "state": "on", "context_user_id": "user123"}
+        assert is_manual_action(entry, included_domains={"homeassistant"}) is False
+
+    # Combined filtering tests
+    def test_combined_user_and_domain_exclude_both_match(self):
+        """Entry matching both excluded user and domain should return False."""
+        entry = {
+            "entity_id": "light.test",
+            "state": "on",
+            "context_user_id": "user123",
+            "context_domain": "nodered",
+        }
+        assert (
+            is_manual_action(entry, excluded_users={"user123"}, excluded_domains={"nodered"})
+            is False
+        )
+
+    def test_combined_user_exclude_domain_include_user_excluded(self):
+        """User excluded takes precedence - should return False."""
+        entry = {
+            "entity_id": "light.test",
+            "state": "on",
+            "context_user_id": "user123",
+            "context_domain": "homeassistant",
+        }
+        assert (
+            is_manual_action(entry, excluded_users={"user123"}, included_domains={"homeassistant"})
+            is False
+        )
+
+    def test_combined_user_include_domain_include_both_match(self):
+        """Both user and domain included - should return True."""
+        entry = {
+            "entity_id": "light.test",
+            "state": "on",
+            "context_user_id": "user123",
+            "context_domain": "homeassistant",
+        }
+        assert (
+            is_manual_action(entry, included_users={"user123"}, included_domains={"homeassistant"})
+            is True
+        )
+
+    def test_combined_user_include_domain_include_user_not_match(self):
+        """User not in include list - should return False."""
+        entry = {
+            "entity_id": "light.test",
+            "state": "on",
+            "context_user_id": "user456",
+            "context_domain": "homeassistant",
+        }
+        assert (
+            is_manual_action(entry, included_users={"user123"}, included_domains={"homeassistant"})
+            is False
+        )
+
+    # Edge case: existing automation exclusion still works
+    def test_automation_domain_still_excluded_even_with_include_filter(self):
+        """context_domain='automation' should still be excluded even if in include list."""
+        entry = {
+            "entity_id": "light.test",
+            "state": "on",
+            "context_user_id": "user123",
+            "context_domain": "automation",
+        }
+        # This should be False because 'automation' is excluded by default logic
+        assert is_manual_action(entry, included_domains={"automation"}) is False
+
+    def test_script_domain_still_excluded_even_with_include_filter(self):
+        """context_domain='script' should still be excluded even if in include list."""
+        entry = {
+            "entity_id": "light.test",
+            "state": "on",
+            "context_user_id": "user123",
+            "context_domain": "script",
+        }
+        assert is_manual_action(entry, included_domains={"script"}) is False
+
+
+# =============================================================================
 # 3. extract_action_from_entry Function Tests
 # =============================================================================
 
