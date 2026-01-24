@@ -29,7 +29,6 @@ from .const import (
     DEFAULT_LOOKBACK_DAYS,
     DEFAULT_MIN_OCCURRENCES,
     DOMAIN,
-    HIGH_CONFIDENCE_THRESHOLD,
 )
 
 if TYPE_CHECKING:
@@ -74,10 +73,9 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
 
         self.config_entry = entry
 
-        # Initialize storage for dismissed and notified suggestions
+        # Initialize storage for dismissed suggestions
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, f"{DOMAIN}.persisted")
         self._dismissed: set[str] = set()
-        self._notified: set[str] = set()
         self._last_update_time: datetime | None = None
 
         # Cache config values
@@ -108,13 +106,8 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
         """Return the set of dismissed suggestion IDs."""
         return self._dismissed
 
-    @property
-    def notified(self) -> set[str]:
-        """Return the set of notified suggestion IDs."""
-        return self._notified
-
     async def async_load_persisted(self) -> None:
-        """Load dismissed and notified suggestions from storage.
+        """Load dismissed suggestions from storage.
 
         Should be called during integration setup before first refresh.
         """
@@ -129,23 +122,12 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
                     )
                 else:
                     self._dismissed = set()
-
-                if "notified" in stored_data:
-                    self._notified = set(stored_data["notified"])
-                    _LOGGER.debug(
-                        "Loaded %d notified suggestions from storage",
-                        len(self._notified),
-                    )
-                else:
-                    self._notified = set()
             else:
                 self._dismissed = set()
-                self._notified = set()
                 _LOGGER.debug("No persisted suggestions found in storage")
         except Exception as err:
             _LOGGER.warning("Error loading persisted suggestions: %s", err)
             self._dismissed = set()
-            self._notified = set()
 
     async def async_dismiss(self, suggestion_id: str) -> None:
         """Dismiss a suggestion and persist to storage.
@@ -179,59 +161,53 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
         await self.async_request_refresh()
 
     async def _async_save_persisted(self) -> None:
-        """Save dismissed and notified suggestions to storage."""
+        """Save dismissed suggestions to storage."""
         try:
             await self._store.async_save(
                 {
                     "dismissed": list(self._dismissed),
-                    "notified": list(self._notified),
                 }
             )
             _LOGGER.debug(
-                "Saved %d dismissed and %d notified suggestions to storage",
+                "Saved %d dismissed suggestions to storage",
                 len(self._dismissed),
-                len(self._notified),
             )
         except Exception as err:
             _LOGGER.error("Error saving persisted suggestions: %s", err)
 
     async def _async_send_notifications(self, suggestions: list[Suggestion]) -> None:
-        """Send a batched persistent notification for new high-confidence suggestions.
+        """Send a persistent notification with all suggestions.
 
-        Only notifies for suggestions that:
-        - Have consistency >= HIGH_CONFIDENCE_THRESHOLD (80%)
-        - Haven't been notified before
-
-        All new suggestions are batched into a single notification to avoid spam.
+        Sends notification on every analysis run with all current suggestions.
+        Uses a fixed notification_id so new notifications replace previous ones.
 
         Args:
             suggestions: List of suggestions from pattern analysis.
         """
-        new_high_confidence = [
-            s
-            for s in suggestions
-            if s.consistency_score >= HIGH_CONFIDENCE_THRESHOLD and s.id not in self._notified
-        ]
-
-        if not new_high_confidence:
+        if not suggestions:
             return
 
         _LOGGER.debug(
-            "Found %d new high-confidence suggestions to notify",
-            len(new_high_confidence),
+            "Sending notification for %d suggestions",
+            len(suggestions),
         )
 
-        # Build bulleted list of suggestions using description property
-        # (description already uses friendly_name when available)
-        bullet_points = [f"- {s.description}" for s in new_high_confidence]
+        # Build formatted list of suggestions
+        # Format: "• {action} {friendly_name} around {time}\n  {consistency}% consistent, seen {count} times"
+        bullet_points = []
+        for s in suggestions:
+            name = s.friendly_name if s.friendly_name else s.entity_id
+            consistency_pct = int(s.consistency_score * 100)
+            bullet_points.append(
+                f"\u2022 {s.action} {name} around {s.suggested_time}\n"
+                f"  {consistency_pct}% consistent, seen {s.occurrence_count} times"
+            )
 
-        # Build the batched notification message
-        count = len(new_high_confidence)
-        suggestion_word = "pattern" if count == 1 else "patterns"
+        # Build the notification message
         message = (
-            f"Found {count} {suggestion_word} you might want to automate:\n\n"
-            + "\n".join(bullet_points)
-            + "\n\nView all suggestions in the Automation Suggestions sensor."
+            "Based on your recent activity, here are some automations you might want to create:\n\n"
+            + "\n\n".join(bullet_points)
+            + "\n\nTo create these automations, go to Settings > Automations & Scenes."
         )
 
         try:
@@ -239,23 +215,17 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
                 "persistent_notification",
                 "create",
                 {
-                    "title": "New Automation Suggestions Available",
+                    "title": "Automation Suggestions Found",
                     "message": message,
                     "notification_id": "automation_suggestions_batch",
                 },
             )
-            # Mark all as notified
-            for suggestion in new_high_confidence:
-                self._notified.add(suggestion.id)
-            _LOGGER.debug("Sent batched notification for %d suggestions", len(new_high_confidence))
+            _LOGGER.debug("Sent notification for %d suggestions", len(suggestions))
         except Exception as err:
             _LOGGER.warning(
-                "Failed to send batched notification: %s",
+                "Failed to send notification: %s",
                 err,
             )
-
-        # Persist the updated notified set
-        await self._async_save_persisted()
 
     async def _async_update_data(self) -> list[Suggestion]:
         """Fetch and analyze patterns.
@@ -291,7 +261,7 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
 
             self._last_update_time = dt_util.utcnow()
 
-            # Send notifications for new high-confidence suggestions
+            # Send notification with all suggestions
             await self._async_send_notifications(suggestions)
 
             return suggestions
