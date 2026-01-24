@@ -453,6 +453,181 @@ class TestSuggestionFriendlyName:
 
 
 # =============================================================================
+# 1.7 Suggestion format_action() Instance Method Tests
+# =============================================================================
+
+
+class TestSuggestionFormatAction:
+    """Tests for the Suggestion.format_action() instance method."""
+
+    def test_format_action_turn_on(self):
+        """format_action() should return 'Turn on' for turn_on action."""
+        suggestion = Suggestion(
+            id="test_id",
+            entity_id="light.test",
+            action="turn_on",
+            suggested_time="07:00",
+            time_window_start="07:00",
+            time_window_end="07:29",
+            consistency_score=0.85,
+            occurrence_count=10,
+            last_occurrence="2026-01-22T07:00:00+00:00",
+        )
+        assert suggestion.format_action() == "Turn on"
+
+    def test_format_action_turn_off(self):
+        """format_action() should return 'Turn off' for turn_off action."""
+        suggestion = Suggestion(
+            id="test_id",
+            entity_id="light.test",
+            action="turn_off",
+            suggested_time="22:00",
+            time_window_start="22:00",
+            time_window_end="22:29",
+            consistency_score=0.90,
+            occurrence_count=8,
+            last_occurrence="2026-01-22T22:00:00+00:00",
+        )
+        assert suggestion.format_action() == "Turn off"
+
+    def test_format_action_activated(self):
+        """format_action() should return 'Activate' for activated action."""
+        suggestion = Suggestion(
+            id="test_id",
+            entity_id="scene.movie",
+            action="activated",
+            suggested_time="20:00",
+            time_window_start="20:00",
+            time_window_end="20:29",
+            consistency_score=0.80,
+            occurrence_count=10,
+            last_occurrence="2026-01-22T20:00:00+00:00",
+        )
+        assert suggestion.format_action() == "Activate"
+
+    def test_format_action_executed(self):
+        """format_action() should return 'Execute' for executed action."""
+        suggestion = Suggestion(
+            id="test_id",
+            entity_id="script.morning_routine",
+            action="executed",
+            suggested_time="06:30",
+            time_window_start="06:30",
+            time_window_end="06:59",
+            consistency_score=0.95,
+            occurrence_count=14,
+            last_occurrence="2026-01-22T06:35:00+00:00",
+        )
+        assert suggestion.format_action() == "Execute"
+
+    def test_format_action_pressed(self):
+        """format_action() should return 'Press' for pressed action."""
+        suggestion = Suggestion(
+            id="test_id",
+            entity_id="input_button.doorbell",
+            action="pressed",
+            suggested_time="12:00",
+            time_window_start="12:00",
+            time_window_end="12:29",
+            consistency_score=0.60,
+            occurrence_count=5,
+            last_occurrence="2026-01-22T12:15:00+00:00",
+        )
+        assert suggestion.format_action() == "Press"
+
+    def test_format_action_changed(self):
+        """format_action() should return 'Change' for changed action."""
+        suggestion = Suggestion(
+            id="test_id",
+            entity_id="input_number.volume",
+            action="changed",
+            suggested_time="19:00",
+            time_window_start="19:00",
+            time_window_end="19:29",
+            consistency_score=0.70,
+            occurrence_count=7,
+            last_occurrence="2026-01-22T19:10:00+00:00",
+        )
+        assert suggestion.format_action() == "Change"
+
+    def test_format_action_set_prefix(self):
+        """format_action() should return 'Set to X' for set_X action."""
+        suggestion = Suggestion(
+            id="test_id",
+            entity_id="climate.hvac",
+            action="set_cool",
+            suggested_time="18:00",
+            time_window_start="18:00",
+            time_window_end="18:29",
+            consistency_score=0.75,
+            occurrence_count=6,
+            last_occurrence="2026-01-22T18:00:00+00:00",
+        )
+        assert suggestion.format_action() == "Set to cool"
+
+    def test_format_action_set_heat(self):
+        """format_action() should return 'Set to heat' for set_heat action."""
+        suggestion = Suggestion(
+            id="test_id",
+            entity_id="climate.thermostat",
+            action="set_heat",
+            suggested_time="20:00",
+            time_window_start="20:00",
+            time_window_end="20:29",
+            consistency_score=0.90,
+            occurrence_count=11,
+            last_occurrence="2026-01-22T20:00:00+00:00",
+        )
+        assert suggestion.format_action() == "Set to heat"
+
+    def test_format_action_unknown_uses_fallback(self):
+        """format_action() should capitalize and replace underscores for unknown actions."""
+        suggestion = Suggestion(
+            id="test_id",
+            entity_id="sensor.test",
+            action="custom_action_here",
+            suggested_time="10:00",
+            time_window_start="10:00",
+            time_window_end="10:29",
+            consistency_score=0.50,
+            occurrence_count=4,
+            last_occurrence="2026-01-22T10:00:00+00:00",
+        )
+        assert suggestion.format_action() == "Custom action here"
+
+    def test_format_action_single_word_unknown(self):
+        """format_action() should capitalize single word unknown actions."""
+        suggestion = Suggestion(
+            id="test_id",
+            entity_id="sensor.test",
+            action="toggle",
+            suggested_time="10:00",
+            time_window_start="10:00",
+            time_window_end="10:29",
+            consistency_score=0.50,
+            occurrence_count=4,
+            last_occurrence="2026-01-22T10:00:00+00:00",
+        )
+        assert suggestion.format_action() == "Toggle"
+
+    def test_format_action_consistency_with_description(self):
+        """format_action() should return the same value used in description property."""
+        suggestion = Suggestion(
+            id="test_id",
+            entity_id="light.kitchen",
+            action="turn_on",
+            suggested_time="07:00",
+            time_window_start="07:00",
+            time_window_end="07:29",
+            consistency_score=0.85,
+            occurrence_count=10,
+            last_occurrence="2026-01-22T07:00:00+00:00",
+        )
+        # The description starts with the formatted action
+        assert suggestion.description.startswith(suggestion.format_action())
+
+
+# =============================================================================
 # 2. is_manual_action Function Tests
 # =============================================================================
 

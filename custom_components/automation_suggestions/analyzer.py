@@ -72,6 +72,10 @@ class Suggestion:
             f"({consistency_pct}% consistent, seen {self.occurrence_count} times)"
         )
 
+    def format_action(self) -> str:
+        """Format the action for display (e.g., 'Turn on' instead of 'turn_on')."""
+        return self._format_action(self.action)
+
     @staticmethod
     def _format_action(action: str) -> str:
         """Convert action string to human-readable format."""

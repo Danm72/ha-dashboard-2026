@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import logging
 
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .coordinator import AutomationSuggestionsCoordinator
 from .services import async_setup_services, async_unload_services
+from .websocket_api import async_register_websocket_api
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +39,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Set up services
     await async_setup_services(hass)
+
+    # Register WebSocket API
+    async_register_websocket_api(hass)
+
+    # Register frontend static path for Lovelace card
+    await hass.http.async_register_static_paths(
+        [
+            StaticPathConfig(
+                "/automation_suggestions",
+                hass.config.path("custom_components/automation_suggestions/www"),
+                cache_headers=False,
+            )
+        ]
+    )
 
     # Forward entry setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
