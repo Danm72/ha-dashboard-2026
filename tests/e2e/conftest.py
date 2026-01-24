@@ -37,6 +37,7 @@ def _load_env_file():
     if env_file.exists():
         try:
             from dotenv import load_dotenv
+
             load_dotenv(env_file)
             logger.info(f"Loaded environment from {env_file}")
         except ImportError:
@@ -152,13 +153,9 @@ def _validate_live_connection(url: str, token: str) -> None:
             timeout=10,
         )
         if resp.status_code == 401:
-            raise ValueError(
-                f"Authentication failed for {url}. Check your HA_LIVE_TOKEN."
-            )
+            raise ValueError(f"Authentication failed for {url}. Check your HA_LIVE_TOKEN.")
         if resp.status_code != 200:
-            raise ValueError(
-                f"Unexpected response from {url}: {resp.status_code} {resp.text}"
-            )
+            raise ValueError(f"Unexpected response from {url}: {resp.status_code} {resp.text}")
         logger.info(f"Successfully connected to live Home Assistant at {url}")
     except requests.exceptions.ConnectionError as e:
         raise ValueError(

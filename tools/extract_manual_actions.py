@@ -37,7 +37,7 @@ def get_ha_base_url():
     """Get Home Assistant base URL from env var or use default."""
     url = os.environ.get("HOMEASSISTANT_URL")
     if url:
-        return url.rstrip('/')  # Remove trailing slash if present
+        return url.rstrip("/")  # Remove trailing slash if present
 
     # Return hardcoded default if no env var
     return "http://192.168.1.217:8123"
@@ -211,15 +211,17 @@ def find_automation_candidates(patterns, min_occurrences=3):
                 # Calculate consistency score
                 consistency = window_count / total
 
-                candidates.append({
-                    "entity_id": entity_id,
-                    "action": action_type,
-                    "total_occurrences": total,
-                    "pattern_window": pattern_data["most_common_window"],
-                    "pattern_occurrences": window_count,
-                    "time_range": pattern_data["time_range"],
-                    "consistency": consistency,
-                })
+                candidates.append(
+                    {
+                        "entity_id": entity_id,
+                        "action": action_type,
+                        "total_occurrences": total,
+                        "pattern_window": pattern_data["most_common_window"],
+                        "pattern_occurrences": window_count,
+                        "time_range": pattern_data["time_range"],
+                        "consistency": consistency,
+                    }
+                )
 
     # Sort by consistency and frequency
     candidates.sort(key=lambda c: (c["consistency"], c["total_occurrences"]), reverse=True)
@@ -249,7 +251,9 @@ def print_summary(actions_by_entity, patterns, days):
 
         entity_pattern = patterns.get(entity_id, {})
 
-        for action_type, timestamps in sorted(actions.items(), key=lambda x: len(x[1]), reverse=True):
+        for action_type, timestamps in sorted(
+            actions.items(), key=lambda x: len(x[1]), reverse=True
+        ):
             count = len(timestamps)
             pattern_info = entity_pattern.get(action_type, {})
             time_range = pattern_info.get("time_range", "various times")
@@ -293,27 +297,20 @@ def main():
         description="Extract manual user actions from Home Assistant logbook"
     )
     parser.add_argument(
-        "--days",
-        type=int,
-        default=7,
-        help="Number of days to look back (default: 7)"
+        "--days", type=int, default=7, help="Number of days to look back (default: 7)"
     )
     parser.add_argument(
         "--base-url",
         default=get_ha_base_url(),
-        help="Home Assistant base URL (env: HOMEASSISTANT_URL, default: http://192.168.1.217:8123)"
+        help="Home Assistant base URL (env: HOMEASSISTANT_URL, default: http://192.168.1.217:8123)",
     )
     parser.add_argument(
         "--min-occurrences",
         type=int,
         default=3,
-        help="Minimum occurrences to suggest automation (default: 3)"
+        help="Minimum occurrences to suggest automation (default: 3)",
     )
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output in JSON format"
-    )
+    parser.add_argument("--json", action="store_true", help="Output in JSON format")
 
     args = parser.parse_args()
 
@@ -367,7 +364,9 @@ def main():
             actions_by_entity[entity_id][action].append(timestamp)
 
         print(f"Found {total_entries} total logbook entries")
-        print(f"Identified {manual_entries} manual actions across {len(actions_by_entity)} entities")
+        print(
+            f"Identified {manual_entries} manual actions across {len(actions_by_entity)} entities"
+        )
 
     except requests.exceptions.ConnectionError:
         print(f"Error: Could not connect to Home Assistant at {args.base_url}", file=sys.stderr)
@@ -395,10 +394,7 @@ def main():
                 "entities_with_actions": len(actions_by_entity),
             },
             "actions_by_entity": {
-                entity_id: {
-                    action: len(timestamps)
-                    for action, timestamps in actions.items()
-                }
+                entity_id: {action: len(timestamps) for action, timestamps in actions.items()}
                 for entity_id, actions in actions_by_entity.items()
             },
             "patterns": patterns,

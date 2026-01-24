@@ -105,9 +105,7 @@ def empty_suggestions():
 @pytest.fixture
 def mock_store():
     """Mock the Store for persistence."""
-    with patch(
-        "custom_components.automation_suggestions.coordinator.Store"
-    ) as mock_store_class:
+    with patch("custom_components.automation_suggestions.coordinator.Store") as mock_store_class:
         mock_store = AsyncMock()
         mock_store.async_load = AsyncMock(return_value={"dismissed": []})
         mock_store.async_save = AsyncMock()

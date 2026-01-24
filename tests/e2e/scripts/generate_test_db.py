@@ -79,7 +79,7 @@ AUTOMATION_TRIGGERED_PATTERNS = [
         "entity_id": "light.porch",
         "state": "on",
         "base_time": "18:00:00",  # ~sunset time
-        "variance_minutes": 30,   # Sunset varies
+        "variance_minutes": 30,  # Sunset varies
         "days": 14,
         "weekdays_only": False,
         "context_parent_id": "automation_sunset_001",  # Has parent = automation triggered
@@ -208,19 +208,23 @@ def generate_state_changes(pattern, base_date):
             hour=base_hour,
             minute=max(0, min(59, base_minute + minute_offset)),
             second=random.randint(0, 59),
-            microsecond=0
+            microsecond=0,
         )
 
-        states.append({
-            "entity_id": pattern["entity_id"],
-            "state": pattern["state"],
-            "attributes": json.dumps({"friendly_name": pattern["entity_id"].split(".")[1].replace("_", " ").title()}),
-            "last_changed": event_time.isoformat(),
-            "last_updated": event_time.isoformat(),
-            "context_id": f"ctx_{day_offset}_{pattern['entity_id']}",
-            "context_user_id": "e2e_test_user_id_1234567890",  # User-initiated
-            "context_parent_id": None,
-        })
+        states.append(
+            {
+                "entity_id": pattern["entity_id"],
+                "state": pattern["state"],
+                "attributes": json.dumps(
+                    {"friendly_name": pattern["entity_id"].split(".")[1].replace("_", " ").title()}
+                ),
+                "last_changed": event_time.isoformat(),
+                "last_updated": event_time.isoformat(),
+                "context_id": f"ctx_{day_offset}_{pattern['entity_id']}",
+                "context_user_id": "e2e_test_user_id_1234567890",  # User-initiated
+                "context_parent_id": None,
+            }
+        )
 
     return states
 
@@ -243,19 +247,25 @@ def generate_automation_triggered_events(pattern, base_date):
             hour=base_hour,
             minute=max(0, min(59, base_minute + minute_offset)),
             second=random.randint(0, 59),
-            microsecond=0
+            microsecond=0,
         )
 
-        states.append({
-            "entity_id": pattern["entity_id"],
-            "state": pattern["state"],
-            "attributes": json.dumps({"friendly_name": pattern["entity_id"].split(".")[1].replace("_", " ").title()}),
-            "last_changed": event_time.isoformat(),
-            "last_updated": event_time.isoformat(),
-            "context_id": f"ctx_auto_{day_offset}_{pattern['entity_id']}",
-            "context_user_id": pattern.get("context_user_id"),  # None for automation
-            "context_parent_id": pattern.get("context_parent_id"),  # Has parent = automation triggered
-        })
+        states.append(
+            {
+                "entity_id": pattern["entity_id"],
+                "state": pattern["state"],
+                "attributes": json.dumps(
+                    {"friendly_name": pattern["entity_id"].split(".")[1].replace("_", " ").title()}
+                ),
+                "last_changed": event_time.isoformat(),
+                "last_updated": event_time.isoformat(),
+                "context_id": f"ctx_auto_{day_offset}_{pattern['entity_id']}",
+                "context_user_id": pattern.get("context_user_id"),  # None for automation
+                "context_parent_id": pattern.get(
+                    "context_parent_id"
+                ),  # Has parent = automation triggered
+            }
+        )
 
     return states
 
@@ -272,26 +282,30 @@ def generate_system_events(pattern, base_date):
         # Generate events throughout the day
         for hour in range(0, 24, hours_between):
             event_time = day.replace(
-                hour=hour,
-                minute=random.randint(0, 5),
-                second=random.randint(0, 59),
-                microsecond=0
+                hour=hour, minute=random.randint(0, 5), second=random.randint(0, 59), microsecond=0
             )
 
             state_value = random.choice(state_values)
-            states.append({
-                "entity_id": pattern["entity_id"],
-                "state": state_value,
-                "attributes": json.dumps({
-                    "friendly_name": pattern["entity_id"].split(".")[1].replace("_", " ").title(),
-                    "unit_of_measurement": "°C"
-                }),
-                "last_changed": event_time.isoformat(),
-                "last_updated": event_time.isoformat(),
-                "context_id": f"ctx_sys_{day_offset}_{hour}_{pattern['entity_id']}",
-                "context_user_id": pattern.get("context_user_id"),  # None for system
-                "context_parent_id": pattern.get("context_parent_id"),
-            })
+            states.append(
+                {
+                    "entity_id": pattern["entity_id"],
+                    "state": state_value,
+                    "attributes": json.dumps(
+                        {
+                            "friendly_name": pattern["entity_id"]
+                            .split(".")[1]
+                            .replace("_", " ")
+                            .title(),
+                            "unit_of_measurement": "°C",
+                        }
+                    ),
+                    "last_changed": event_time.isoformat(),
+                    "last_updated": event_time.isoformat(),
+                    "context_id": f"ctx_sys_{day_offset}_{hour}_{pattern['entity_id']}",
+                    "context_user_id": pattern.get("context_user_id"),  # None for system
+                    "context_parent_id": pattern.get("context_parent_id"),
+                }
+            )
 
     return states
 
@@ -310,22 +324,28 @@ def generate_inconsistent_events(pattern, base_date):
             random_minute = random.randint(0, 59)
 
             event_time = day.replace(
-                hour=random_hour,
-                minute=random_minute,
-                second=random.randint(0, 59),
-                microsecond=0
+                hour=random_hour, minute=random_minute, second=random.randint(0, 59), microsecond=0
             )
 
-            states.append({
-                "entity_id": pattern["entity_id"],
-                "state": pattern["state"],
-                "attributes": json.dumps({"friendly_name": pattern["entity_id"].split(".")[1].replace("_", " ").title()}),
-                "last_changed": event_time.isoformat(),
-                "last_updated": event_time.isoformat(),
-                "context_id": f"ctx_rand_{day_offset}_{event_num}_{pattern['entity_id']}",
-                "context_user_id": pattern.get("context_user_id"),  # Manual but inconsistent
-                "context_parent_id": pattern.get("context_parent_id"),
-            })
+            states.append(
+                {
+                    "entity_id": pattern["entity_id"],
+                    "state": pattern["state"],
+                    "attributes": json.dumps(
+                        {
+                            "friendly_name": pattern["entity_id"]
+                            .split(".")[1]
+                            .replace("_", " ")
+                            .title()
+                        }
+                    ),
+                    "last_changed": event_time.isoformat(),
+                    "last_updated": event_time.isoformat(),
+                    "context_id": f"ctx_rand_{day_offset}_{event_num}_{pattern['entity_id']}",
+                    "context_user_id": pattern.get("context_user_id"),  # Manual but inconsistent
+                    "context_parent_id": pattern.get("context_parent_id"),
+                }
+            )
 
     return states
 
@@ -354,7 +374,9 @@ def main():
     for pattern in PATTERNS:
         states = generate_state_changes(pattern, base_date)
         all_states.extend(states)
-        print(f"  + {pattern['entity_id']} -> {pattern['state']} around {pattern['base_time']} ({len(states)} events)")
+        print(
+            f"  + {pattern['entity_id']} -> {pattern['state']} around {pattern['base_time']} ({len(states)} events)"
+        )
 
     # UNHAPPY PATH: Events that should be filtered out
     print("\nGenerating UNHAPPY PATH patterns (should be filtered):")
@@ -363,19 +385,25 @@ def main():
     for pattern in AUTOMATION_TRIGGERED_PATTERNS:
         states = generate_automation_triggered_events(pattern, base_date)
         all_states.extend(states)
-        print(f"  - {pattern['entity_id']} (automation-triggered, has context_parent_id) ({len(states)} events)")
+        print(
+            f"  - {pattern['entity_id']} (automation-triggered, has context_parent_id) ({len(states)} events)"
+        )
 
     # Script-triggered events
     for pattern in SCRIPT_TRIGGERED_PATTERNS:
         states = generate_automation_triggered_events(pattern, base_date)  # Same logic
         all_states.extend(states)
-        print(f"  - {pattern['entity_id']} (script-triggered, has context_parent_id) ({len(states)} events)")
+        print(
+            f"  - {pattern['entity_id']} (script-triggered, has context_parent_id) ({len(states)} events)"
+        )
 
     # System events without user context
     for pattern in SYSTEM_EVENT_PATTERNS:
         states = generate_system_events(pattern, base_date)
         all_states.extend(states)
-        print(f"  - {pattern['entity_id']} (system event, no context_user_id) ({len(states)} events)")
+        print(
+            f"  - {pattern['entity_id']} (system event, no context_user_id) ({len(states)} events)"
+        )
 
     # Random/inconsistent events
     for pattern in INCONSISTENT_PATTERNS:
@@ -385,25 +413,31 @@ def main():
 
     # Insert states
     for state in all_states:
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO states (entity_id, state, attributes, last_changed, last_updated,
                               context_id, context_user_id, context_parent_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            state["entity_id"],
-            state["state"],
-            state["attributes"],
-            state["last_changed"],
-            state["last_updated"],
-            state["context_id"],
-            state["context_user_id"],
-            state["context_parent_id"],
-        ))
+        """,
+            (
+                state["entity_id"],
+                state["state"],
+                state["attributes"],
+                state["last_changed"],
+                state["last_updated"],
+                state["context_id"],
+                state["context_user_id"],
+                state["context_parent_id"],
+            ),
+        )
 
         # Also insert into states_meta if not exists
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT OR IGNORE INTO states_meta (entity_id) VALUES (?)
-        """, (state["entity_id"],))
+        """,
+            (state["entity_id"],),
+        )
 
     conn.commit()
 
