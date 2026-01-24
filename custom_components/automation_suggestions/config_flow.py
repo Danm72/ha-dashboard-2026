@@ -8,7 +8,7 @@ import voluptuous as vol
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
-    OptionsFlow,
+    OptionsFlowWithConfigEntry,
 )
 from homeassistant.core import callback
 
@@ -52,7 +52,7 @@ def get_config_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
             vol.Required(
                 CONF_CONSISTENCY_THRESHOLD,
                 default=defaults.get(CONF_CONSISTENCY_THRESHOLD, DEFAULT_CONSISTENCY_THRESHOLD),
-            ): vol.All(vol.Coerce(float), vol.Range(min=0.5, max=1.0)),
+            ): vol.All(vol.Coerce(float), vol.Range(min=0.0, max=1.0)),
         }
     )
 
@@ -92,10 +92,10 @@ class AutomationSuggestionsConfigFlow(ConfigFlow, domain=DOMAIN):
         config_entry: ConfigEntry,
     ) -> AutomationSuggestionsOptionsFlow:
         """Create the options flow."""
-        return AutomationSuggestionsOptionsFlow()
+        return AutomationSuggestionsOptionsFlow(config_entry)
 
 
-class AutomationSuggestionsOptionsFlow(OptionsFlow):
+class AutomationSuggestionsOptionsFlow(OptionsFlowWithConfigEntry):
     """Handle options flow for Automation Suggestions."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
