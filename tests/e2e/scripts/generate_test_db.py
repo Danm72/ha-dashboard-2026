@@ -16,6 +16,12 @@ UNHAPPY PATH (should be FILTERED OUT by the analyzer):
 - Temperature sensor: system events without user context
 - Garage light: random/inconsistent timing (below consistency threshold)
 
+USER FILTERING PATTERNS (for testing user_filter_mode):
+- Guest room light: events from a different user ID (e2e_guest_user_id_9999999999)
+
+DOMAIN FILTERING PATTERNS (for testing domain_filter_mode):
+- Automated light: events with context_domain="nodered"
+
 Run this script to regenerate the test database:
     python tests/e2e/scripts/generate_test_db.py
 """
@@ -128,6 +134,35 @@ INCONSISTENT_PATTERNS = [
     },
 ]
 
+# Guest user events - can be filtered with user_filter_mode="exclude"
+GUEST_USER_PATTERNS = [
+    {
+        "entity_id": "light.guest_room",
+        "state": "on",
+        "base_time": "09:00:00",
+        "variance_minutes": 15,
+        "days": 14,
+        "weekdays_only": False,
+        "context_user_id": "e2e_guest_user_id_9999999999",  # Different user
+        "context_parent_id": None,
+    },
+]
+
+# Node-RED events - can be filtered with domain_filter_mode="exclude"
+NODERED_DOMAIN_PATTERNS = [
+    {
+        "entity_id": "light.automated_light",
+        "state": "on",
+        "base_time": "19:00:00",
+        "variance_minutes": 10,
+        "days": 14,
+        "weekdays_only": False,
+        "context_user_id": "e2e_test_user_id_1234567890",  # Has user ID
+        "context_parent_id": None,  # No parent (not automation triggered)
+        "context_domain": "nodered",  # But triggered by Node-RED
+    },
+]
+
 
 def create_schema(conn):
     """Create the recorder database schema."""
@@ -144,7 +179,8 @@ def create_schema(conn):
             last_updated DATETIME,
             context_id VARCHAR(36),
             context_user_id VARCHAR(36),
-            context_parent_id VARCHAR(36)
+            context_parent_id VARCHAR(36),
+            context_domain VARCHAR(64)
         )
     """)
 
@@ -221,8 +257,11 @@ def generate_state_changes(pattern, base_date):
                 "last_changed": event_time.isoformat(),
                 "last_updated": event_time.isoformat(),
                 "context_id": f"ctx_{day_offset}_{pattern['entity_id']}",
-                "context_user_id": "e2e_test_user_id_1234567890",  # User-initiated
-                "context_parent_id": None,
+                "context_user_id": pattern.get(
+                    "context_user_id", "e2e_test_user_id_1234567890"
+                ),  # User-initiated
+                "context_parent_id": pattern.get("context_parent_id"),
+                "context_domain": pattern.get("context_domain"),
             }
         )
 
@@ -264,6 +303,7 @@ def generate_automation_triggered_events(pattern, base_date):
                 "context_parent_id": pattern.get(
                     "context_parent_id"
                 ),  # Has parent = automation triggered
+                "context_domain": pattern.get("context_domain"),
             }
         )
 
@@ -304,6 +344,7 @@ def generate_system_events(pattern, base_date):
                     "context_id": f"ctx_sys_{day_offset}_{hour}_{pattern['entity_id']}",
                     "context_user_id": pattern.get("context_user_id"),  # None for system
                     "context_parent_id": pattern.get("context_parent_id"),
+                    "context_domain": pattern.get("context_domain"),
                 }
             )
 
@@ -344,8 +385,49 @@ def generate_inconsistent_events(pattern, base_date):
                     "context_id": f"ctx_rand_{day_offset}_{event_num}_{pattern['entity_id']}",
                     "context_user_id": pattern.get("context_user_id"),  # Manual but inconsistent
                     "context_parent_id": pattern.get("context_parent_id"),
+                    "context_domain": pattern.get("context_domain"),
                 }
             )
+
+    return states
+
+
+def generate_domain_context_events(pattern, base_date):
+    """Generate events with specific context_domain (for domain filtering tests)."""
+    states = []
+
+    base_hour, base_minute, _ = map(int, pattern["base_time"].split(":"))
+    variance = pattern["variance_minutes"]
+
+    for day_offset in range(pattern["days"]):
+        day = base_date - timedelta(days=day_offset)
+
+        if pattern["weekdays_only"] and day.weekday() >= 5:
+            continue
+
+        minute_offset = random.randint(-variance, variance)
+        event_time = day.replace(
+            hour=base_hour,
+            minute=max(0, min(59, base_minute + minute_offset)),
+            second=random.randint(0, 59),
+            microsecond=0,
+        )
+
+        states.append(
+            {
+                "entity_id": pattern["entity_id"],
+                "state": pattern["state"],
+                "attributes": json.dumps(
+                    {"friendly_name": pattern["entity_id"].split(".")[1].replace("_", " ").title()}
+                ),
+                "last_changed": event_time.isoformat(),
+                "last_updated": event_time.isoformat(),
+                "context_id": f"ctx_domain_{day_offset}_{pattern['entity_id']}",
+                "context_user_id": pattern.get("context_user_id"),
+                "context_parent_id": pattern.get("context_parent_id"),
+                "context_domain": pattern.get("context_domain"),
+            }
+        )
 
     return states
 
@@ -411,13 +493,31 @@ def main():
         all_states.extend(states)
         print(f"  - {pattern['entity_id']} (inconsistent timing) ({len(states)} events)")
 
+    # Guest user events (for user filtering tests)
+    print("\nGenerating USER FILTERING patterns:")
+    for pattern in GUEST_USER_PATTERNS:
+        states = generate_state_changes(pattern, base_date)
+        all_states.extend(states)
+        print(
+            f"  + {pattern['entity_id']} (guest user: {pattern['context_user_id']}) ({len(states)} events)"
+        )
+
+    # Node-RED domain events (for domain filtering tests)
+    print("\nGenerating DOMAIN FILTERING patterns:")
+    for pattern in NODERED_DOMAIN_PATTERNS:
+        states = generate_domain_context_events(pattern, base_date)
+        all_states.extend(states)
+        print(
+            f"  + {pattern['entity_id']} (context_domain: {pattern['context_domain']}) ({len(states)} events)"
+        )
+
     # Insert states
     for state in all_states:
         cursor.execute(
             """
             INSERT INTO states (entity_id, state, attributes, last_changed, last_updated,
-                              context_id, context_user_id, context_parent_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                              context_id, context_user_id, context_parent_id, context_domain)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 state["entity_id"],
@@ -428,6 +528,7 @@ def main():
                 state["context_id"],
                 state["context_user_id"],
                 state["context_parent_id"],
+                state.get("context_domain"),
             ),
         )
 

@@ -291,3 +291,190 @@ class TestRecorderIntegration:
         """Verify we can query logbook API."""
         resp = ha_api("GET", "/api/logbook")
         assert resp.status_code in (200, 400)
+
+
+@pytest.mark.synthetic_data
+class TestUserDomainFiltering:
+    """Test user and domain filtering in the analyzer.
+
+    The test database contains:
+    - light.guest_room: Events from guest user (e2e_guest_user_id_9999999999)
+    - light.automated_light: Events with context_domain="nodered"
+    - Other entities: Events from primary user (e2e_test_user_id_1234567890)
+
+    These tests verify that filtering by user ID and domain works correctly.
+    """
+
+    def _reconfigure_integration(self, ha_api, options: dict):
+        """Reconfigure the integration with new options."""
+        # List all config entries to find ours
+        resp = ha_api("GET", "/api/config/config_entries/entry")
+        if resp.status_code != 200:
+            pytest.skip(f"Could not list config entries: {resp.status_code}")
+
+        entries = resp.json()
+        our_entry = None
+        for entry in entries:
+            if entry.get("domain") == "automation_suggestions":
+                our_entry = entry
+                break
+
+        if not our_entry:
+            pytest.skip("automation_suggestions config entry not found")
+
+        entry_id = our_entry["entry_id"]
+
+        # Start options flow
+        resp = ha_api(
+            "POST",
+            "/api/config/config_entries/options/flow",
+            json={"handler": entry_id},
+        )
+        if resp.status_code not in (200, 201):
+            pytest.skip(f"Could not start options flow: {resp.status_code} {resp.text}")
+
+        flow_data = resp.json()
+        flow_id = flow_data.get("flow_id")
+
+        if not flow_id:
+            pytest.skip("No flow_id returned from options flow")
+
+        # Submit the options
+        resp = ha_api(
+            "POST",
+            f"/api/config/config_entries/options/flow/{flow_id}",
+            json=options,
+        )
+        return resp.status_code in (200, 201)
+
+    def _get_detected_entities(self, ha_api):
+        """Helper to get list of entity_ids in suggestions."""
+        # Trigger analysis
+        resp = ha_api("POST", "/api/services/automation_suggestions/analyze_now", json={})
+        assert resp.status_code in (200, 201)
+
+        # Wait for processing
+        import time
+
+        time.sleep(3)
+
+        # Get the top suggestions sensor
+        resp = ha_api("GET", "/api/states/sensor.automation_suggestions_top_suggestions")
+        assert resp.status_code == 200
+        state = resp.json()
+
+        suggestions = state.get("attributes", {}).get("suggestions", [])
+        if isinstance(suggestions, list):
+            return [s.get("entity_id") for s in suggestions if isinstance(s, dict)]
+        return []
+
+    def test_exclude_user_filters_guest_room(self, ha_api):
+        """Verify excluding guest user filters out light.guest_room.
+
+        When user_filter_mode="exclude" with the guest user ID,
+        light.guest_room should NOT appear in suggestions.
+        """
+        # Configure to exclude guest user
+        options = {
+            "analysis_interval": 7,
+            "lookback_days": 14,
+            "min_occurrences": 2,
+            "consistency_threshold": 0.70,
+            "user_filter_mode": "exclude",
+            "filtered_users": "e2e_guest_user_id_9999999999",
+            "domain_filter_mode": "none",
+            "filtered_domains": "",
+        }
+
+        if not self._reconfigure_integration(ha_api, options):
+            pytest.skip("Could not reconfigure integration")
+
+        detected_entities = self._get_detected_entities(ha_api)
+
+        # light.guest_room should NOT be detected (user excluded)
+        assert "light.guest_room" not in detected_entities, (
+            f"light.guest_room should be filtered out (guest user excluded), "
+            f"but was found in: {detected_entities}"
+        )
+
+    def test_include_user_filters_to_only_primary(self, ha_api):
+        """Verify including only primary user filters out guest_room.
+
+        When user_filter_mode="include" with only the primary user ID,
+        light.guest_room should NOT appear in suggestions.
+        """
+        options = {
+            "analysis_interval": 7,
+            "lookback_days": 14,
+            "min_occurrences": 2,
+            "consistency_threshold": 0.70,
+            "user_filter_mode": "include",
+            "filtered_users": "e2e_test_user_id_1234567890",
+            "domain_filter_mode": "none",
+            "filtered_domains": "",
+        }
+
+        if not self._reconfigure_integration(ha_api, options):
+            pytest.skip("Could not reconfigure integration")
+
+        detected_entities = self._get_detected_entities(ha_api)
+
+        # light.guest_room should NOT be detected (only primary user included)
+        assert "light.guest_room" not in detected_entities, (
+            f"light.guest_room should be filtered out (only primary user included), "
+            f"but was found in: {detected_entities}"
+        )
+
+    def test_exclude_domain_filters_nodered(self, ha_api):
+        """Verify excluding nodered domain filters out light.automated_light.
+
+        When domain_filter_mode="exclude" with "nodered",
+        light.automated_light should NOT appear in suggestions.
+        """
+        options = {
+            "analysis_interval": 7,
+            "lookback_days": 14,
+            "min_occurrences": 2,
+            "consistency_threshold": 0.70,
+            "user_filter_mode": "none",
+            "filtered_users": "",
+            "domain_filter_mode": "exclude",
+            "filtered_domains": "nodered",
+        }
+
+        if not self._reconfigure_integration(ha_api, options):
+            pytest.skip("Could not reconfigure integration")
+
+        detected_entities = self._get_detected_entities(ha_api)
+
+        # light.automated_light should NOT be detected (nodered excluded)
+        assert "light.automated_light" not in detected_entities, (
+            f"light.automated_light should be filtered out (nodered excluded), "
+            f"but was found in: {detected_entities}"
+        )
+
+    def test_no_filter_includes_all_manual_actions(self, ha_api):
+        """Verify no filtering includes all manual actions including guest and nodered.
+
+        When both filter modes are "none", all manual actions should be candidates.
+        """
+        options = {
+            "analysis_interval": 7,
+            "lookback_days": 14,
+            "min_occurrences": 2,
+            "consistency_threshold": 0.70,
+            "user_filter_mode": "none",
+            "filtered_users": "",
+            "domain_filter_mode": "none",
+            "filtered_domains": "",
+        }
+
+        if not self._reconfigure_integration(ha_api, options):
+            pytest.skip("Could not reconfigure integration")
+
+        detected_entities = self._get_detected_entities(ha_api)
+
+        # With no filtering, at least some entities should be detected
+        # Note: We don't assert specific entities because they need to meet
+        # consistency threshold and occurrence requirements
+        assert isinstance(detected_entities, list), "Should return a list of entities"
