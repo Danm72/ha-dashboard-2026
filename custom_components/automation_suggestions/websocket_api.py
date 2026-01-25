@@ -27,7 +27,7 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "automation_suggestions/list",
-        vol.Optional("page", default=1): vol.Coerce(int),
+        vol.Optional("page", default=1): vol.All(vol.Coerce(int), vol.Range(min=1)),
         vol.Optional("page_size", default=20): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
     }
 )

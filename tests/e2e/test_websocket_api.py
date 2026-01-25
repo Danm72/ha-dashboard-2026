@@ -38,7 +38,7 @@ class TestWebSocketConnection:
                 )
         except (ConnectionRefusedError, OSError) as e:
             pytest.skip(f"WebSocket not available: {e}")
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pytest.fail("WebSocket connection timed out waiting for auth_required")
 
     @pytest.mark.asyncio
@@ -64,7 +64,7 @@ class TestWebSocketConnection:
                 assert data["type"] == "auth_ok", f"Expected auth_ok, got: {data}"
         except (ConnectionRefusedError, OSError) as e:
             pytest.skip(f"WebSocket not available: {e}")
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pytest.fail("WebSocket authentication timed out")
 
 
@@ -124,7 +124,7 @@ class TestWebSocketListSuggestions:
         try:
             message = await asyncio.wait_for(websocket.recv(), timeout=10)
             data = json.loads(message)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pytest.fail("Timed out waiting for list response")
 
         # Verify response structure
@@ -273,7 +273,7 @@ class TestWebSocketSubscribeSuggestions:
         try:
             message = await asyncio.wait_for(websocket.recv(), timeout=10)
             data = json.loads(message)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pytest.fail("Timed out waiting for subscribe response")
 
         # Verify subscription was successful
@@ -285,7 +285,7 @@ class TestWebSocketSubscribeSuggestions:
         try:
             event_message = await asyncio.wait_for(websocket.recv(), timeout=10)
             event_data = json.loads(event_message)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             # It's acceptable if no event is sent when data is None
             return
 

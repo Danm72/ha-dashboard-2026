@@ -25,8 +25,6 @@ class AutomationSuggestionsCard extends HTMLElement {
   _config = null;
   _suggestions = [];
   _total = 0;
-  _page = 1;
-  _pages = 0;
   _scanning = false;
   _loading = true;
   _error = null;
@@ -34,16 +32,12 @@ class AutomationSuggestionsCard extends HTMLElement {
   _collapsedDomains = new Set();
   _boundHandleClick = null;
 
-  // Memoization cache
-  _groupedCache = null;
-  _groupedCacheKey = null;
-
   static getStubConfig() {
-    return { page_size: 20 };
+    return {};
   }
 
   setConfig(config) {
-    this._config = { page_size: 20, ...config };
+    this._config = { ...config };
   }
 
   set hass(hass) {
@@ -88,7 +82,6 @@ class AutomationSuggestionsCard extends HTMLElement {
           this._suggestions = msg.suggestions || [];
           this._total = msg.total || 0;
           this._loading = false;
-          this._invalidateGroupCache();
           this._render();
         },
         { type: "automation_suggestions/subscribe" }
@@ -121,18 +114,6 @@ class AutomationSuggestionsCard extends HTMLElement {
       const header = target.closest(".domain-header") || target;
       const domain = header.dataset.domain;
       if (domain) this._toggleDomain(domain);
-      return;
-    }
-
-    // Pagination
-    if (target.classList.contains("page-prev") && this._page > 1) {
-      this._page--;
-      this._fetchPage();
-      return;
-    }
-    if (target.classList.contains("page-next") && this._page < this._pages) {
-      this._page++;
-      this._fetchPage();
       return;
     }
 
@@ -182,53 +163,15 @@ class AutomationSuggestionsCard extends HTMLElement {
     this._render();
   }
 
-  async _fetchPage() {
-    this._loading = true;
-    this._render();
-
-    try {
-      const result = await this._hass.callWS({
-        type: "automation_suggestions/list",
-        page: this._page,
-        page_size: this._config.page_size,
-      });
-      this._suggestions = result.suggestions;
-      this._total = result.total;
-      this._pages = result.pages;
-      this._loading = false;
-      this._invalidateGroupCache();
-    } catch (err) {
-      this._error = err.message;
-      this._loading = false;
-    }
-    this._render();
-  }
-
-  _invalidateGroupCache() {
-    this._groupedCache = null;
-    this._groupedCacheKey = null;
-  }
-
   _groupByDomain(suggestions) {
-    // Memoization: only recompute if suggestions changed
-    const cacheKey = JSON.stringify(suggestions.map((s) => s.id));
-    if (this._groupedCacheKey === cacheKey && this._groupedCache) {
-      return this._groupedCache;
-    }
-
     const grouped = {};
     for (const s of suggestions) {
       const domain = s.entity_id?.split(".")[0] || "unknown";
       if (!grouped[domain]) grouped[domain] = [];
       grouped[domain].push(s);
     }
-
     // Sort domains by count descending
-    const sorted = Object.entries(grouped).sort((a, b) => b[1].length - a[1].length);
-
-    this._groupedCache = sorted;
-    this._groupedCacheKey = cacheKey;
-    return sorted;
+    return Object.entries(grouped).sort((a, b) => b[1].length - a[1].length);
   }
 
   _render() {
@@ -332,22 +275,6 @@ class AutomationSuggestionsCard extends HTMLElement {
       `;
     }
 
-    // Pagination
-    let paginationHtml = "";
-    if (this._pages > 1) {
-      paginationHtml = `
-        <div class="pagination">
-          <button class="page-prev" ${this._page <= 1 ? "disabled" : ""}>
-            <ha-icon icon="mdi:chevron-left"></ha-icon>
-          </button>
-          <span>Page ${this._page} of ${this._pages}</span>
-          <button class="page-next" ${this._page >= this._pages ? "disabled" : ""}>
-            <ha-icon icon="mdi:chevron-right"></ha-icon>
-          </button>
-        </div>
-      `;
-    }
-
     this.innerHTML = `
       <ha-card>
         <div class="card-header">
@@ -361,7 +288,6 @@ class AutomationSuggestionsCard extends HTMLElement {
           <mwc-button class="scan-btn" ${this._scanning ? "disabled" : ""}>
             ${this._scanning ? "Scanning..." : "Scan Now"}
           </mwc-button>
-          ${paginationHtml}
         </div>
       </ha-card>
     `;
@@ -481,31 +407,8 @@ class AutomationSuggestionsCard extends HTMLElement {
         text-transform: capitalize;
       }
       .card-actions {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
         padding: 8px 16px;
         border-top: 1px solid var(--divider-color);
-      }
-      .pagination {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .pagination button {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 4px;
-        border-radius: 50%;
-        color: var(--secondary-text-color);
-      }
-      .pagination button:hover:not([disabled]) {
-        background: var(--secondary-background-color);
-      }
-      .pagination button[disabled] {
-        opacity: 0.5;
-        cursor: not-allowed;
       }
     `;
     this.prepend(style);

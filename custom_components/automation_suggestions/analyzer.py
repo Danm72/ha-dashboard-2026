@@ -11,10 +11,12 @@ are designed to be testable without Home Assistant dependencies.
 from __future__ import annotations
 
 import logging
+import re
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 # Import constants with fallback for standalone testing
 try:
@@ -43,6 +45,9 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
+
+# Entity ID validation pattern - must be domain.object_id format with only safe characters
+ENTITY_ID_PATTERN = re.compile(r"^[a-z_][a-z0-9_]*\.[a-z0-9_]+$")
 
 
 @dataclass
@@ -257,7 +262,7 @@ def parse_timestamp(ts_str: str | Any | None) -> datetime | None:
         ts_str: A timestamp string in ISO format, or None.
 
     Returns:
-        A datetime object, or None if parsing fails.
+        A timezone-aware datetime object (UTC), or None if parsing fails.
     """
     if not ts_str:
         return None
@@ -266,15 +271,15 @@ def parse_timestamp(ts_str: str | Any | None) -> datetime | None:
     if not isinstance(ts_str, str):
         return None
 
-    # Handle various timestamp formats
+    # Handle various timestamp formats - normalize Z suffix to +00:00
     ts_str = ts_str.replace("Z", "+00:00")
 
     try:
-        # Try parsing with timezone
-        if "+" in ts_str or ts_str.endswith("Z"):
-            return datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
-        else:
-            return datetime.fromisoformat(ts_str)
+        parsed = datetime.fromisoformat(ts_str)
+        # Ensure timezone awareness - assume UTC if naive
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=UTC)
+        return parsed
     except ValueError:
         return None
 
@@ -650,73 +655,79 @@ async def _analyze_via_state_history(
     """
     from homeassistant.components.recorder import get_instance
 
-    # Get entity IDs for tracked domains
-    tracked_entity_ids: list[str] = []
-    for state in hass.states.async_all():
-        domain = state.entity_id.split(".")[0]
-        if domain in TRACKED_DOMAINS:
-            tracked_entity_ids.append(state.entity_id)
-
-    if not tracked_entity_ids:
-        _LOGGER.debug("No entities found in tracked domains")
+    # Validate entity IDs to prevent SQL injection
+    valid_entity_ids = [
+        state.entity_id
+        for state in hass.states.async_all()
+        if state.domain in TRACKED_DOMAINS and ENTITY_ID_PATTERN.match(state.entity_id)
+    ]
+    if not valid_entity_ids:
+        _LOGGER.debug("No valid tracked entities found for direct query")
         return []
 
     def _query_states_with_context() -> list[dict[str, Any]]:
         """Query states with context_user_id from database."""
         import sqlite3
-        from pathlib import Path
 
         # Get database path from recorder
         recorder_instance = get_instance(hass)
-        db_path = recorder_instance.db_url.replace("sqlite:///", "")
+        parsed = urlparse(recorder_instance.db_url)
+        db_path = parsed.path
 
-        entries = []
+        entries: list[dict[str, Any]] = []
         try:
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
 
-            # Convert timestamps to unix epoch
-            start_ts = start_time.timestamp()
-            end_ts = end_time.timestamp()
+                # Convert timestamps to unix epoch
+                start_ts = start_time.timestamp()
+                end_ts = end_time.timestamp()
 
-            # Build entity filter for SQL
-            entity_placeholders = ",".join("?" * len(tracked_entity_ids))
+                # Build entity filter for SQL
+                entity_placeholders = ",".join("?" * len(valid_entity_ids))
 
-            # Query states with context info
-            # Join with states_meta to get entity_id
-            cursor.execute(
-                f"""
-                SELECT
-                    sm.entity_id,
-                    s.state,
-                    s.last_changed_ts,
-                    s.context_user_id
-                FROM states s
-                JOIN states_meta sm ON s.metadata_id = sm.metadata_id
-                WHERE sm.entity_id IN ({entity_placeholders})
-                AND s.last_changed_ts >= ?
-                AND s.last_changed_ts <= ?
-                ORDER BY s.last_changed_ts
-                """,
-                (*tracked_entity_ids, start_ts, end_ts),
-            )
+                # Query states with context info
+                # Join with states_meta to get entity_id
+                cursor.execute(
+                    f"""
+                    SELECT
+                        sm.entity_id,
+                        s.state,
+                        s.last_changed_ts,
+                        s.context_user_id
+                    FROM states s
+                    JOIN states_meta sm ON s.metadata_id = sm.metadata_id
+                    WHERE sm.entity_id IN ({entity_placeholders})
+                    AND s.last_changed_ts >= ?
+                    AND s.last_changed_ts <= ?
+                    ORDER BY s.last_changed_ts
+                    """,
+                    (*valid_entity_ids, start_ts, end_ts),
+                )
 
-            for row in cursor.fetchall():
-                entity_id, state, last_changed_ts, context_user_id = row
-                # Convert timestamp to ISO format
-                when = datetime.fromtimestamp(last_changed_ts).isoformat() if last_changed_ts else None
-                entries.append({
-                    "entity_id": entity_id,
-                    "state": state,
-                    "when": when,
-                    "context_user_id": context_user_id if context_user_id else None,
-                    "context_event_type": None,
-                    "context_domain": None,
-                })
-
-            conn.close()
-        except Exception as err:
-            _LOGGER.error("Error querying states with context: %s", err)
+                for row in cursor.fetchall():
+                    entity_id, state, last_changed_ts, context_user_id = row
+                    # Convert timestamp to timezone-aware UTC datetime ISO format
+                    when = None
+                    if last_changed_ts:
+                        dt = datetime.fromtimestamp(last_changed_ts, tz=UTC)
+                        when = dt.isoformat()
+                    entries.append(
+                        {
+                            "entity_id": entity_id,
+                            "state": state,
+                            "when": when,
+                            "context_user_id": context_user_id if context_user_id else None,
+                            "context_event_type": None,
+                            "context_domain": None,
+                        }
+                    )
+        except sqlite3.Error as err:
+            _LOGGER.error("Database error querying states with context: %s", err)
+            return []
+        except ValueError as err:
+            _LOGGER.error("Value error parsing state data: %s", err)
+            return []
 
         return entries
 
