@@ -28,15 +28,19 @@ ruff format .
 
 # Check formatting without changes
 ruff format --check .
+
+# Ensure you're using Python 3.13+ virtual environment
+.venv/bin/pytest --ignore=tests/e2e/
 ```
 
 ### Test Configuration
+- Requires Python 3.13+ and Home Assistant 2026.1+
 - Uses `pytest-homeassistant-custom-component` plugin
 - Root `conftest.py` registers the plugin: `pytest_plugins = ["pytest_homeassistant_custom_component"]`
 - Tests located in: `custom_components/automation_suggestions/tests/`
 
 ### Linting Configuration (pyproject.toml)
-- Target: Python 3.12
+- Target: Python 3.13
 - Line length: 100
 - Rules: F (Pyflakes), E (pycodestyle errors), W (warnings), I (isort), UP (pyupgrade)
 
@@ -224,7 +228,7 @@ From `manifest.json`:
 ## HACS Installation
 
 Configured for HACS in `hacs.json`:
-- Minimum HA version: 2024.1.0
+- Minimum HA version: 2026.1.0
 - Content not in root (`content_in_root: false`)
 
 ## Tools Directory

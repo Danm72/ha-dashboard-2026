@@ -4,7 +4,6 @@ from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.automation_suggestions.const import DOMAIN
 from custom_components.automation_suggestions.coordinator import (
@@ -34,7 +33,7 @@ class TestCoordinator:
 
         coordinator = AutomationSuggestionsCoordinator(hass, config_entry)
         await coordinator.async_load_persisted()
-        await coordinator.async_config_entry_first_refresh()
+        await coordinator.async_refresh()
 
         assert coordinator.data is not None
         assert len(coordinator.data) == 3
@@ -52,8 +51,10 @@ class TestCoordinator:
             coordinator = AutomationSuggestionsCoordinator(hass, config_entry)
             await coordinator.async_load_persisted()
 
-            with pytest.raises(UpdateFailed):
-                await coordinator.async_config_entry_first_refresh()
+            await coordinator.async_refresh()
+
+            # async_refresh() catches errors and sets last_update_success to False
+            assert coordinator.last_update_success is False
 
     @pytest.mark.asyncio
     async def test_dismissed_suggestions_persist(
@@ -131,7 +132,7 @@ class TestCoordinator:
 
         coordinator._async_send_notifications = track_notifications
 
-        await coordinator.async_config_entry_first_refresh()
+        await coordinator.async_refresh()
 
         # Verify notification was sent with all suggestions
         assert len(notification_calls) == 1
@@ -180,7 +181,7 @@ class TestCoordinator:
             coordinator._async_send_notifications = track_notifications
 
             # First analysis run
-            await coordinator.async_config_entry_first_refresh()
+            await coordinator.async_refresh()
             assert len(notification_calls) == 1
 
             # Second analysis run - should still send notification
@@ -214,7 +215,7 @@ class TestCoordinator:
 
             coordinator._async_send_notifications = track_notifications
 
-            await coordinator.async_config_entry_first_refresh()
+            await coordinator.async_refresh()
 
             # Verify no notification was sent (empty list passed to _async_send_notifications
             # should trigger early return)

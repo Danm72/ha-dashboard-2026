@@ -11,10 +11,12 @@ are designed to be testable without Home Assistant dependencies.
 from __future__ import annotations
 
 import logging
+import re
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 # Import constants with fallback for standalone testing
 try:
@@ -44,6 +46,9 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Entity ID validation pattern - must be domain.object_id format with only safe characters
+ENTITY_ID_PATTERN = re.compile(r"^[a-z_][a-z0-9_]*\.[a-z0-9_]+$")
+
 
 @dataclass
 class Suggestion:
@@ -71,6 +76,10 @@ class Suggestion:
             f"{action_display} {display_name} around {self.suggested_time} "
             f"({consistency_pct}% consistent, seen {self.occurrence_count} times)"
         )
+
+    def format_action(self) -> str:
+        """Format the action for display (e.g., 'Turn on' instead of 'turn_on')."""
+        return self._format_action(self.action)
 
     @staticmethod
     def _format_action(action: str) -> str:
@@ -253,7 +262,7 @@ def parse_timestamp(ts_str: str | Any | None) -> datetime | None:
         ts_str: A timestamp string in ISO format, or None.
 
     Returns:
-        A datetime object, or None if parsing fails.
+        A timezone-aware datetime object (UTC), or None if parsing fails.
     """
     if not ts_str:
         return None
@@ -262,15 +271,15 @@ def parse_timestamp(ts_str: str | Any | None) -> datetime | None:
     if not isinstance(ts_str, str):
         return None
 
-    # Handle various timestamp formats
+    # Handle various timestamp formats - normalize Z suffix to +00:00
     ts_str = ts_str.replace("Z", "+00:00")
 
     try:
-        # Try parsing with timezone
-        if "+" in ts_str or ts_str.endswith("Z"):
-            return datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
-        else:
-            return datetime.fromisoformat(ts_str)
+        parsed = datetime.fromisoformat(ts_str)
+        # Ensure timezone awareness - assume UTC if naive
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=UTC)
+        return parsed
     except ValueError:
         return None
 
@@ -639,60 +648,106 @@ async def _analyze_via_state_history(
     consistency_threshold: float,
     dismissed_suggestions: set[str],
 ) -> list[Suggestion]:
-    """Fallback analysis using state history (limited context info).
+    """Fallback analysis using direct database query for context info.
 
-    This method uses get_significant_states which doesn't have context_user_id,
-    so it treats ALL state changes as potential manual actions. Less accurate
-    but works without API access.
+    This method queries the recorder database directly to get state changes
+    with context_user_id, which allows us to identify manual user actions.
     """
     from homeassistant.components.recorder import get_instance
-    from homeassistant.components.recorder.history import get_significant_states
 
-    # Get entity IDs for tracked domains
-    tracked_entity_ids: list[str] = []
-    for state in hass.states.async_all():
-        domain = state.entity_id.split(".")[0]
-        if domain in TRACKED_DOMAINS:
-            tracked_entity_ids.append(state.entity_id)
-
-    if not tracked_entity_ids:
-        _LOGGER.debug("No entities found in tracked domains")
+    # Validate entity IDs to prevent SQL injection
+    valid_entity_ids = [
+        state.entity_id
+        for state in hass.states.async_all()
+        if state.domain in TRACKED_DOMAINS and ENTITY_ID_PATTERN.match(state.entity_id)
+    ]
+    if not valid_entity_ids:
+        _LOGGER.debug("No valid tracked entities found for direct query")
         return []
+
+    def _query_states_with_context() -> list[dict[str, Any]]:
+        """Query states with context_user_id from database."""
+        import sqlite3
+
+        # Get database path from recorder
+        recorder_instance = get_instance(hass)
+        parsed = urlparse(recorder_instance.db_url)
+        db_path = parsed.path
+
+        entries: list[dict[str, Any]] = []
+        try:
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+
+                # Convert timestamps to unix epoch
+                start_ts = start_time.timestamp()
+                end_ts = end_time.timestamp()
+
+                # Build entity filter for SQL
+                entity_placeholders = ",".join("?" * len(valid_entity_ids))
+
+                # Query states with context info
+                # Join with states_meta to get entity_id
+                cursor.execute(
+                    f"""
+                    SELECT
+                        sm.entity_id,
+                        s.state,
+                        s.last_changed_ts,
+                        s.context_user_id
+                    FROM states s
+                    JOIN states_meta sm ON s.metadata_id = sm.metadata_id
+                    WHERE sm.entity_id IN ({entity_placeholders})
+                    AND s.last_changed_ts >= ?
+                    AND s.last_changed_ts <= ?
+                    ORDER BY s.last_changed_ts
+                    """,
+                    (*valid_entity_ids, start_ts, end_ts),
+                )
+
+                for row in cursor.fetchall():
+                    entity_id, state, last_changed_ts, context_user_id = row
+                    # Convert timestamp to timezone-aware UTC datetime ISO format
+                    when = None
+                    if last_changed_ts:
+                        dt = datetime.fromtimestamp(last_changed_ts, tz=UTC)
+                        when = dt.isoformat()
+                    entries.append(
+                        {
+                            "entity_id": entity_id,
+                            "state": state,
+                            "when": when,
+                            "context_user_id": context_user_id if context_user_id else None,
+                            "context_event_type": None,
+                            "context_domain": None,
+                        }
+                    )
+        except sqlite3.Error as err:
+            _LOGGER.error("Database error querying states with context: %s", err)
+            return []
+        except ValueError as err:
+            _LOGGER.error("Value error parsing state data: %s", err)
+            return []
+
+        return entries
 
     try:
-        states_by_entity = await get_instance(hass).async_add_executor_job(
-            get_significant_states,
-            hass,
-            start_time,
-            end_time,
-            tracked_entity_ids,
-            None,  # filters
-            True,  # include_start_time_state
-            True,  # significant_changes_only
-            False,  # minimal_response
-        )
+        entries = await hass.async_add_executor_job(_query_states_with_context)
     except Exception as err:
-        _LOGGER.error("Error querying state history: %s", err)
+        _LOGGER.error("Error in state history fallback: %s", err)
         return []
 
-    # Convert to entries - mark all as having context_user_id since we can't tell
-    entries: list[dict[str, Any]] = []
-    for entity_id, states in states_by_entity.items():
-        for state in states:
-            entry = {
-                "entity_id": entity_id,
-                "state": state.state,
-                "when": state.last_changed.isoformat() if state.last_changed else None,
-                "context_user_id": "unknown",  # Assume manual since we can't tell
-                "context_event_type": None,
-                "context_domain": None,
-            }
-            # If there's a parent context, mark as potentially automated
-            if state.context and state.context.parent_id:
-                entry["context_user_id"] = None  # Skip these
-            entries.append(entry)
-
-    _LOGGER.debug("Collected %d state entries for fallback analysis", len(entries))
+    # Debug: Log sample entries to see context info
+    entries_with_user = [e for e in entries if e.get("context_user_id")]
+    entries_without_user = [e for e in entries if not e.get("context_user_id")]
+    _LOGGER.debug(
+        "Collected %d state entries for fallback analysis: %d with context_user_id, %d without. "
+        "Sample with user: %s",
+        len(entries),
+        len(entries_with_user),
+        len(entries_without_user),
+        entries_with_user[:3] if entries_with_user else "none",
+    )
 
     suggestions = await hass.async_add_executor_job(
         analyze_logbook_entries,

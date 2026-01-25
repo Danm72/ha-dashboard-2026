@@ -35,10 +35,10 @@
   "entity": {
     "sensor": {
       "count": {
-        "name": "Suggestions count"
+        "name": "Count"
       },
       "top": {
-        "name": "Top suggestions"
+        "name": "Top"
       },
       "last_analysis": {
         "name": "Last analysis"
@@ -46,7 +46,7 @@
     },
     "binary_sensor": {
       "available": {
-        "name": "Suggestions available"
+        "name": "Available"
       }
     }
   }

@@ -7,6 +7,7 @@ of dismissed suggestions.
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -31,12 +32,14 @@ from .const import (
     DEFAULT_ANALYSIS_INTERVAL,
     DEFAULT_CONSISTENCY_THRESHOLD,
     DEFAULT_DOMAIN_FILTER_MODE,
+    DEFAULT_EMOJI,
     DEFAULT_FILTERED_DOMAINS,
     DEFAULT_FILTERED_USERS,
     DEFAULT_LOOKBACK_DAYS,
     DEFAULT_MIN_OCCURRENCES,
     DEFAULT_USER_FILTER_MODE,
     DOMAIN,
+    DOMAIN_EMOJI_MAP,
 )
 
 if TYPE_CHECKING:
@@ -206,7 +209,7 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
             _LOGGER.error("Error saving persisted suggestions: %s", err)
 
     async def _async_send_notifications(self, suggestions: list[Suggestion]) -> None:
-        """Send a persistent notification with all suggestions.
+        """Send a persistent notification with all suggestions grouped by domain.
 
         Sends notification on every analysis run with all current suggestions.
         Uses a fixed notification_id so new notifications replace previous ones.
@@ -222,21 +225,39 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
             len(suggestions),
         )
 
-        # Build formatted list of suggestions
-        # Format: "• {action} {friendly_name} around {time}\n  {consistency}% consistent, seen {count} times"
-        bullet_points = []
+        # Group suggestions by domain
+        by_domain: dict[str, list[Suggestion]] = defaultdict(list)
         for s in suggestions:
-            name = s.friendly_name if s.friendly_name else s.entity_id
-            consistency_pct = int(s.consistency_score * 100)
-            bullet_points.append(
-                f"\u2022 {s.action} {name} around {s.suggested_time}\n"
-                f"  {consistency_pct}% consistent, seen {s.occurrence_count} times"
-            )
+            # Defensive check for malformed entity_id
+            if "." not in s.entity_id:
+                _LOGGER.warning("Malformed entity_id: %s", s.entity_id)
+                continue
+            domain = s.entity_id.split(".")[0]
+            by_domain[domain].append(s)
 
-        # Build the notification message
+        # Build message with domain sections (sorted by count descending)
+        sections = []
+        for domain in sorted(by_domain.keys(), key=lambda d: -len(by_domain[d])):
+            emoji = DOMAIN_EMOJI_MAP.get(domain, DEFAULT_EMOJI)
+            count = len(by_domain[domain])
+            domain_label = domain.replace("_", " ").title()
+            header = f"## {emoji} {domain_label} ({count})"
+
+            bullets = []
+            for s in by_domain[domain]:
+                name = s.friendly_name if s.friendly_name else s.entity_id
+                action = s.format_action()
+                pct = int(s.consistency_score * 100)
+                bullets.append(
+                    f"• {action} {name} around {s.suggested_time}\n"
+                    f"  {pct}% consistent, seen {s.occurrence_count} times"
+                )
+
+            sections.append(header + "\n" + "\n".join(bullets))
+
         message = (
-            "Based on your recent activity, here are some automations you might want to create:\n\n"
-            + "\n\n".join(bullet_points)
+            "Based on your recent activity:\n\n"
+            + "\n\n".join(sections)
             + "\n\nTo create these automations, go to Settings > Automations & Scenes."
         )
 

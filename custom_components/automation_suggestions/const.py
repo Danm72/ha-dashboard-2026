@@ -40,3 +40,20 @@ TRACKED_DOMAINS = [
     "input_datetime",
     "input_button",
 ]
+
+# Domain to emoji mapping for notifications and card UI
+DOMAIN_EMOJI_MAP: dict[str, str] = {
+    "light": "💡",
+    "switch": "🔌",
+    "cover": "🚪",
+    "climate": "🌡️",
+    "scene": "🎬",
+    "script": "📜",
+    "input_number": "⚙️",
+    "input_boolean": "⚙️",
+    "input_select": "⚙️",
+    "input_datetime": "⚙️",
+    "input_button": "⚙️",
+}
+
+DEFAULT_EMOJI = "📋"

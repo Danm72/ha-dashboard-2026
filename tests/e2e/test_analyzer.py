@@ -52,10 +52,10 @@ class TestAnalyzerPatternDetection:
 
         # Check for our sensors (entity names include domain prefix)
         expected_sensors = [
-            "sensor.automation_suggestions_suggestions_count",
-            "sensor.automation_suggestions_top_suggestions",
+            "sensor.automation_suggestions_count",
+            "sensor.automation_suggestions_top",
             "sensor.automation_suggestions_last_analysis",
-            "binary_sensor.automation_suggestions_suggestions_available",
+            "binary_sensor.automation_suggestions_available",
         ]
 
         for sensor in expected_sensors:
@@ -93,7 +93,7 @@ class TestAnalyzerPatternDetection:
         time.sleep(2)
 
         # Check the count sensor
-        resp = ha_api("GET", "/api/states/sensor.automation_suggestions_suggestions_count")
+        resp = ha_api("GET", "/api/states/sensor.automation_suggestions_count")
         assert resp.status_code == 200
         state = resp.json()
 
@@ -104,7 +104,7 @@ class TestAnalyzerPatternDetection:
             assert count >= 0, "Count sensor should have a valid state"
 
         # Check the top suggestions sensor
-        resp = ha_api("GET", "/api/states/sensor.automation_suggestions_top_suggestions")
+        resp = ha_api("GET", "/api/states/sensor.automation_suggestions_top")
         assert resp.status_code == 200
         top_state = resp.json()
 
@@ -139,7 +139,7 @@ class TestAnalyzerFiltering:
         time.sleep(3)
 
         # Get the top suggestions sensor which contains the detected patterns
-        resp = ha_api("GET", "/api/states/sensor.automation_suggestions_top_suggestions")
+        resp = ha_api("GET", "/api/states/sensor.automation_suggestions_top")
         assert resp.status_code == 200
         state = resp.json()
 
@@ -233,7 +233,7 @@ class TestAnalyzerFiltering:
         # the recorder database, not created by any integration)
         if len(detected_entities) == 0:
             # Verify the analyzer service ran successfully by checking sensor state
-            resp = ha_api("GET", "/api/states/sensor.automation_suggestions_suggestions_count")
+            resp = ha_api("GET", "/api/states/sensor.automation_suggestions_count")
             assert resp.status_code == 200
             state = resp.json()
             # As long as the sensor has a valid state (not unknown), the analyzer ran
@@ -359,7 +359,7 @@ class TestUserDomainFiltering:
         time.sleep(3)
 
         # Get the top suggestions sensor
-        resp = ha_api("GET", "/api/states/sensor.automation_suggestions_top_suggestions")
+        resp = ha_api("GET", "/api/states/sensor.automation_suggestions_top")
         assert resp.status_code == 200
         state = resp.json()
 
