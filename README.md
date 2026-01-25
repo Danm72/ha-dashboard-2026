@@ -93,6 +93,38 @@ User IDs are UUIDs that identify Home Assistant users. To find them:
 | `sensor.automation_suggestions_last_analysis` | Sensor | Timestamp of last analysis run |
 | `binary_sensor.automation_suggestions_available` | Binary Sensor | On when suggestions exist |
 
+### Dashboard Card
+
+Add a button to your dashboard to trigger analysis on demand:
+
+```yaml
+type: button
+name: Scan Now
+tap_action:
+  action: call-service
+  service: automation_suggestions.analyze_now
+icon: mdi:magnify-scan
+```
+
+### View All Suggestions Card
+
+For viewing all suggestions (not just top 5), add the custom Lovelace card:
+
+1. Go to **Settings → Dashboards → Resources**
+2. Add resource: `/automation_suggestions/automation-suggestions-card.js` (type: JavaScript Module)
+3. Add a card to your dashboard with this YAML:
+
+```yaml
+type: custom:automation-suggestions-card
+```
+
+**Card Features:**
+- Displays all suggestions (not just top 5)
+- Grouped by domain with collapsible sections
+- Dismiss button per suggestion
+- "Scan Now" button to trigger immediate analysis
+- Live updates via WebSocket subscription
+
 ### Understanding Suggestion Output
 
 Each suggestion in `sensor.automation_suggestions_top` attributes includes:
@@ -169,6 +201,76 @@ This repository also includes a modern, room-based sections dashboard template f
 6. Save
 
 See the template file for full placeholder documentation.
+
+## Development & Testing
+
+### Running Tests
+
+```bash
+# Unit and integration tests
+pytest
+
+# E2E tests with Docker
+pytest tests/e2e/ -c tests/e2e/pytest.ini
+```
+
+### Setting Up Test Data
+
+For development and testing, you can inject synthetic usage patterns into a Home Assistant database to test the suggestion analyzer.
+
+1. **Create test entities** in your `configuration.yaml`:
+
+```yaml
+input_boolean:
+  morning_coffee:
+    name: Morning Coffee
+    icon: mdi:coffee
+  evening_lights:
+    name: Evening Lights
+    icon: mdi:lamp
+  bedtime_mode:
+    name: Bedtime Mode
+    icon: mdi:bed
+  lunch_break:
+    name: Lunch Break
+    icon: mdi:food
+```
+
+2. **Find your user ID** from `.storage/auth`:
+
+```bash
+cat .storage/auth | grep -A5 '"is_owner": true'
+# Look for the "id" field of your admin user
+```
+
+3. **Stop Home Assistant** cleanly to release database locks:
+
+```bash
+# Docker
+docker stop --timeout=30 <container>
+
+# Supervised/Core
+ha core stop
+```
+
+4. **Inject test data** using the provided script:
+
+```bash
+python tests/e2e/inject_test_data.py \
+  --db-path /path/to/home-assistant_v2.db \
+  --user-id YOUR_USER_ID \
+  --days 14
+```
+
+5. **Restart Home Assistant** and the integration will analyze the injected patterns.
+
+The inject script creates state changes with realistic timing patterns:
+- Morning Coffee: ~07:00 daily
+- Lunch Break: ~12:00 daily
+- Evening Lights: ~18:30 daily
+- Bedtime Mode: ~22:00 daily
+
+Each pattern has slight variance to simulate real user behavior.
 
 ## License
 

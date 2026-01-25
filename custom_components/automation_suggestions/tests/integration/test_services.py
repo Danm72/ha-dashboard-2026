@@ -41,7 +41,7 @@ class TestServices:
             blocking=True,
         )
 
-        coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
+        coordinator = config_entry.runtime_data
         assert "light_kitchen_turn_on_07_00" in coordinator.dismissed
 
     @pytest.mark.asyncio

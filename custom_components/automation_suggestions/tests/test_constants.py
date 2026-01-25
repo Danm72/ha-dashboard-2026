@@ -59,6 +59,10 @@ class TestDataFactory:
 TEST_HA_TOKEN = "test_ha_token_12345"
 TEST_USER_ID = "user_abc123"
 
+# Visual testing credentials (for Docker e2e tests)
+TEST_USER = "test"
+TEST_PASSWORD = "test"
+
 
 # =============================================================================
 # Domain Emoji Mapping Tests

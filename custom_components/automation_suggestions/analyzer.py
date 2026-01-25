@@ -643,14 +643,12 @@ async def _analyze_via_state_history(
     consistency_threshold: float,
     dismissed_suggestions: set[str],
 ) -> list[Suggestion]:
-    """Fallback analysis using state history (limited context info).
+    """Fallback analysis using direct database query for context info.
 
-    This method uses get_significant_states which doesn't have context_user_id,
-    so it treats ALL state changes as potential manual actions. Less accurate
-    but works without API access.
+    This method queries the recorder database directly to get state changes
+    with context_user_id, which allows us to identify manual user actions.
     """
     from homeassistant.components.recorder import get_instance
-    from homeassistant.components.recorder.history import get_significant_states
 
     # Get entity IDs for tracked domains
     tracked_entity_ids: list[str] = []
@@ -663,40 +661,82 @@ async def _analyze_via_state_history(
         _LOGGER.debug("No entities found in tracked domains")
         return []
 
+    def _query_states_with_context() -> list[dict[str, Any]]:
+        """Query states with context_user_id from database."""
+        import sqlite3
+        from pathlib import Path
+
+        # Get database path from recorder
+        recorder_instance = get_instance(hass)
+        db_path = recorder_instance.db_url.replace("sqlite:///", "")
+
+        entries = []
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            # Convert timestamps to unix epoch
+            start_ts = start_time.timestamp()
+            end_ts = end_time.timestamp()
+
+            # Build entity filter for SQL
+            entity_placeholders = ",".join("?" * len(tracked_entity_ids))
+
+            # Query states with context info
+            # Join with states_meta to get entity_id
+            cursor.execute(
+                f"""
+                SELECT
+                    sm.entity_id,
+                    s.state,
+                    s.last_changed_ts,
+                    s.context_user_id
+                FROM states s
+                JOIN states_meta sm ON s.metadata_id = sm.metadata_id
+                WHERE sm.entity_id IN ({entity_placeholders})
+                AND s.last_changed_ts >= ?
+                AND s.last_changed_ts <= ?
+                ORDER BY s.last_changed_ts
+                """,
+                (*tracked_entity_ids, start_ts, end_ts),
+            )
+
+            for row in cursor.fetchall():
+                entity_id, state, last_changed_ts, context_user_id = row
+                # Convert timestamp to ISO format
+                when = datetime.fromtimestamp(last_changed_ts).isoformat() if last_changed_ts else None
+                entries.append({
+                    "entity_id": entity_id,
+                    "state": state,
+                    "when": when,
+                    "context_user_id": context_user_id if context_user_id else None,
+                    "context_event_type": None,
+                    "context_domain": None,
+                })
+
+            conn.close()
+        except Exception as err:
+            _LOGGER.error("Error querying states with context: %s", err)
+
+        return entries
+
     try:
-        states_by_entity = await get_instance(hass).async_add_executor_job(
-            get_significant_states,
-            hass,
-            start_time,
-            end_time,
-            tracked_entity_ids,
-            None,  # filters
-            True,  # include_start_time_state
-            True,  # significant_changes_only
-            False,  # minimal_response
-        )
+        entries = await hass.async_add_executor_job(_query_states_with_context)
     except Exception as err:
-        _LOGGER.error("Error querying state history: %s", err)
+        _LOGGER.error("Error in state history fallback: %s", err)
         return []
 
-    # Convert to entries - mark all as having context_user_id since we can't tell
-    entries: list[dict[str, Any]] = []
-    for entity_id, states in states_by_entity.items():
-        for state in states:
-            entry = {
-                "entity_id": entity_id,
-                "state": state.state,
-                "when": state.last_changed.isoformat() if state.last_changed else None,
-                "context_user_id": "unknown",  # Assume manual since we can't tell
-                "context_event_type": None,
-                "context_domain": None,
-            }
-            # If there's a parent context, mark as potentially automated
-            if state.context and state.context.parent_id:
-                entry["context_user_id"] = None  # Skip these
-            entries.append(entry)
-
-    _LOGGER.debug("Collected %d state entries for fallback analysis", len(entries))
+    # Debug: Log sample entries to see context info
+    entries_with_user = [e for e in entries if e.get("context_user_id")]
+    entries_without_user = [e for e in entries if not e.get("context_user_id")]
+    _LOGGER.debug(
+        "Collected %d state entries for fallback analysis: %d with context_user_id, %d without. "
+        "Sample with user: %s",
+        len(entries),
+        len(entries_with_user),
+        len(entries_without_user),
+        entries_with_user[:3] if entries_with_user else "none",
+    )
 
     suggestions = await hass.async_add_executor_job(
         analyze_logbook_entries,

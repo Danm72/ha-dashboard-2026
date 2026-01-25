@@ -43,16 +43,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register WebSocket API
     async_register_websocket_api(hass)
 
-    # Register frontend static path for Lovelace card
-    await hass.http.async_register_static_paths(
-        [
-            StaticPathConfig(
-                "/automation_suggestions",
-                hass.config.path("custom_components/automation_suggestions/www"),
-                cache_headers=False,
-            )
-        ]
-    )
+    # Register frontend static path for Lovelace card (only if HTTP is available)
+    if hass.http is not None:
+        await hass.http.async_register_static_paths(
+            [
+                StaticPathConfig(
+                    "/automation_suggestions",
+                    hass.config.path("custom_components/automation_suggestions/www"),
+                    cache_headers=False,
+                )
+            ]
+        )
 
     # Forward entry setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

@@ -64,7 +64,7 @@
   "entity": {
     "sensor": {
       "count": {
-        "name": "Suggestions count",
+        "name": "Count",
         "state_attributes": {
           "suggestions": {
             "name": "Suggestions"
@@ -72,7 +72,7 @@
         }
       },
       "top": {
-        "name": "Top suggestions",
+        "name": "Top",
         "state_attributes": {
           "suggestions": {
             "name": "Suggestion details"
@@ -93,7 +93,7 @@
     },
     "binary_sensor": {
       "available": {
-        "name": "Suggestions available"
+        "name": "Available"
       }
     }
   },
