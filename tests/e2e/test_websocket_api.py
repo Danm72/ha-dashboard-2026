@@ -33,9 +33,9 @@ class TestWebSocketConnection:
                 # Should receive auth_required message
                 message = await asyncio.wait_for(websocket.recv(), timeout=10)
                 data = json.loads(message)
-                assert data["type"] == "auth_required", (
-                    f"Expected auth_required, got: {data['type']}"
-                )
+                assert (
+                    data["type"] == "auth_required"
+                ), f"Expected auth_required, got: {data['type']}"
         except (ConnectionRefusedError, OSError) as e:
             pytest.skip(f"WebSocket not available: {e}")
         except TimeoutError:
@@ -299,9 +299,7 @@ class TestWebSocketSubscribeSuggestions:
         assert isinstance(event["total"], int)
 
     @pytest.mark.asyncio
-    async def test_subscribe_returns_error_when_not_configured(
-        self, ha_url, ha_token, ha_api
-    ):
+    async def test_subscribe_returns_error_when_not_configured(self, ha_url, ha_token, ha_api):
         """Verify subscribe returns appropriate response when integration isn't fully set up."""
         # First check if the integration is loaded
         resp = ha_api("GET", "/api/config")
@@ -377,8 +375,7 @@ class TestStaticPathServing:
         # Should be accessible (200) or might require different auth (401)
         # 404 would mean the static path isn't registered
         assert resp.status_code != 404, (
-            f"Card JS file not found at {js_url}. "
-            "Static path may not be registered correctly."
+            f"Card JS file not found at {js_url}. " "Static path may not be registered correctly."
         )
 
         if resp.status_code == 200:
@@ -399,9 +396,11 @@ class TestStaticPathServing:
 
         # In HA 2026+, static paths can be served without auth
         # 200 means file is accessible, 401/404 means auth required or not found
-        assert resp.status_code in (200, 401, 404), (
-            f"Unexpected response {resp.status_code} for unauthenticated request"
-        )
+        assert resp.status_code in (
+            200,
+            401,
+            404,
+        ), f"Unexpected response {resp.status_code} for unauthenticated request"
 
 
 class TestWebSocketErrorHandling:
@@ -503,8 +502,116 @@ class TestWebSocketErrorHandling:
                 # Should receive auth_invalid
                 message = await asyncio.wait_for(websocket.recv(), timeout=10)
                 data = json.loads(message)
-                assert data["type"] == "auth_invalid", (
-                    f"Expected auth_invalid for bad token, got: {data['type']}"
-                )
+                assert (
+                    data["type"] == "auth_invalid"
+                ), f"Expected auth_invalid for bad token, got: {data['type']}"
         except (ConnectionRefusedError, OSError) as e:
             pytest.skip(f"WebSocket not available: {e}")
+
+
+class TestWebSocketListStaleEndpoint:
+    """Test the automation_suggestions/list_stale WebSocket command in real HA."""
+
+    @pytest.fixture
+    async def authenticated_websocket(self, ha_url, ha_token):
+        """Create an authenticated WebSocket connection."""
+        ws_url = ha_url.replace("http://", "ws://").replace("https://", "wss://")
+        ws_url = f"{ws_url}/api/websocket"
+
+        try:
+            websocket = await websockets.connect(ws_url)
+        except (ConnectionRefusedError, OSError) as e:
+            pytest.skip(f"WebSocket not available: {e}")
+            return
+
+        try:
+            message = await asyncio.wait_for(websocket.recv(), timeout=10)
+            data = json.loads(message)
+            if data["type"] != "auth_required":
+                await websocket.close()
+                pytest.fail(f"Expected auth_required, got: {data['type']}")
+
+            auth_msg = {"type": "auth", "access_token": ha_token}
+            await websocket.send(json.dumps(auth_msg))
+
+            message = await asyncio.wait_for(websocket.recv(), timeout=10)
+            data = json.loads(message)
+            if data["type"] != "auth_ok":
+                await websocket.close()
+                pytest.fail(f"Expected auth_ok, got: {data}")
+
+            yield websocket
+        finally:
+            await websocket.close()
+
+    @pytest.mark.asyncio
+    async def test_list_stale_endpoint_exists(self, authenticated_websocket):
+        """Verify list_stale endpoint is registered and responds."""
+        websocket = authenticated_websocket
+
+        cmd = {
+            "id": 1,
+            "type": "automation_suggestions/list_stale",
+        }
+        await websocket.send(json.dumps(cmd))
+
+        try:
+            message = await asyncio.wait_for(websocket.recv(), timeout=10)
+            data = json.loads(message)
+        except TimeoutError:
+            pytest.fail("Timed out waiting for list_stale response")
+
+        # Verify response structure
+        assert data["id"] == 1, f"Response ID mismatch: {data}"
+        assert data["type"] == "result", f"Expected result type, got: {data['type']}"
+        assert data["success"] is True, f"Command failed: {data}"
+
+        # Verify result has expected fields
+        result = data["result"]
+        assert "stale_automations" in result
+        assert "total" in result
+        assert "page" in result
+        assert "pages" in result
+        assert "page_size" in result
+
+    @pytest.mark.asyncio
+    async def test_list_stale_invalid_page_size_rejected(self, authenticated_websocket):
+        """Test that invalid page_size values are rejected for list_stale."""
+        websocket = authenticated_websocket
+
+        # Try page_size of 0 (below minimum)
+        cmd = {
+            "id": 1,
+            "type": "automation_suggestions/list_stale",
+            "page": 1,
+            "page_size": 0,
+        }
+        await websocket.send(json.dumps(cmd))
+
+        message = await asyncio.wait_for(websocket.recv(), timeout=10)
+        data = json.loads(message)
+
+        assert data["id"] == 1
+        if data["type"] == "result":
+            assert data["success"] is False, "Should reject page_size of 0"
+
+    @pytest.mark.asyncio
+    async def test_list_stale_page_size_over_max_rejected(self, authenticated_websocket):
+        """Test that page_size over maximum is rejected for list_stale."""
+        websocket = authenticated_websocket
+
+        # Try page_size over 100 (above maximum)
+        cmd = {
+            "id": 1,
+            "type": "automation_suggestions/list_stale",
+            "page": 1,
+            "page_size": 200,
+        }
+        await websocket.send(json.dumps(cmd))
+
+        message = await asyncio.wait_for(websocket.recv(), timeout=10)
+        data = json.loads(message)
+
+        assert data["id"] == 1
+        if data["type"] == "result":
+            assert data["success"] is False, "Should reject page_size over 100"
