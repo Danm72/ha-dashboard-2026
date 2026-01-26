@@ -23,7 +23,7 @@ from .const import DOMAIN
 from .coordinator import AutomationSuggestionsCoordinator
 
 if TYPE_CHECKING:
-    from .analyzer import Suggestion
+    from .analyzer import StaleAutomation, Suggestion
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,6 +46,7 @@ async def async_setup_entry(
         AutomationSuggestionsCountSensor(coordinator, entry),
         AutomationSuggestionsTopSensor(coordinator, entry),
         AutomationSuggestionsLastAnalysisSensor(coordinator, entry),
+        AutomationSuggestionsStaleCountSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -190,3 +191,36 @@ class AutomationSuggestionsLastAnalysisSensor(AutomationSuggestionsBaseSensor):
         if self.coordinator.last_update_success:
             return {"status": "success", "suggestion_count": suggestion_count}
         return {"status": "error", "suggestion_count": suggestion_count}
+
+
+class AutomationSuggestionsStaleCountSensor(AutomationSuggestionsBaseSensor):
+    """Sensor showing the count of stale automations."""
+
+    _attr_icon = "mdi:robot-off"
+    _attr_native_unit_of_measurement = "automations"
+    _attr_translation_key = "stale_count"
+
+    def __init__(
+        self,
+        coordinator: AutomationSuggestionsCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the stale count sensor.
+
+        Args:
+            coordinator: The data update coordinator.
+            entry: Config entry for unique ID generation.
+        """
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_stale_count"
+
+    @property
+    def native_value(self) -> int:
+        """Return the number of stale automations."""
+        return len(self.coordinator.stale_automations)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the stale automations as attributes."""
+        stale_list: list[StaleAutomation] = self.coordinator.stale_automations
+        return {"stale_automations": [s.to_dict() for s in stale_list]}

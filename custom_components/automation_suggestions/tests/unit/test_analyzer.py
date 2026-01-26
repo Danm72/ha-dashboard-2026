@@ -15,15 +15,17 @@ Covers:
 8. Malformed logbook entries handling
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 
 # Import the module under test
 from custom_components.automation_suggestions.analyzer import (
+    StaleAutomation,
     Suggestion,
     extract_action_from_entry,
     find_automation_candidates,
+    find_stale_automations,
     format_time_range,
     get_time_window,
     is_manual_action,
@@ -2068,6 +2070,533 @@ class TestMalformedLogbookEntries:
 
         result_action = extract_action_from_entry(entry)
         assert result_action == "turn_on"
+
+
+# =============================================================================
+# 9. StaleAutomation Dataclass Tests
+# =============================================================================
+
+
+class TestStaleAutomationDataclass:
+    """Tests for the StaleAutomation dataclass."""
+
+    def test_id_property_returns_automation_id(self):
+        """The id property should return automation_id."""
+        stale = StaleAutomation(
+            automation_id="automation.test_lights",
+            friendly_name="Test Lights",
+            last_triggered="2026-01-01T10:00:00+00:00",
+            days_since_triggered=25,
+            is_disabled=False,
+        )
+        assert stale.id == "automation.test_lights"
+
+    def test_to_dict_includes_all_fields(self):
+        """to_dict() should return all expected fields."""
+        stale = StaleAutomation(
+            automation_id="automation.morning_routine",
+            friendly_name="Morning Routine",
+            last_triggered="2026-01-10T07:30:00+00:00",
+            days_since_triggered=16,
+            is_disabled=True,
+        )
+        result = stale.to_dict()
+
+        # Check all expected fields are present
+        assert "id" in result
+        assert "automation_id" in result
+        assert "friendly_name" in result
+        assert "last_triggered" in result
+        assert "days_since_triggered" in result
+        assert "is_disabled" in result
+
+        # Check values
+        assert result["automation_id"] == "automation.morning_routine"
+        assert result["friendly_name"] == "Morning Routine"
+        assert result["last_triggered"] == "2026-01-10T07:30:00+00:00"
+        assert result["days_since_triggered"] == 16
+        assert result["is_disabled"] is True
+
+    def test_to_dict_id_equals_automation_id(self):
+        """to_dict()["id"] should equal automation_id."""
+        stale = StaleAutomation(
+            automation_id="automation.garage_door",
+            friendly_name="Garage Door",
+            last_triggered=None,
+            days_since_triggered=999,
+            is_disabled=False,
+        )
+        result = stale.to_dict()
+        assert result["id"] == result["automation_id"]
+        assert result["id"] == "automation.garage_door"
+
+
+# =============================================================================
+# 10. find_stale_automations Function Tests
+# =============================================================================
+
+
+class TestFindStaleAutomations:
+    """Tests for the find_stale_automations function."""
+
+    def test_returns_empty_list_for_empty_input(self):
+        """Empty input returns empty list."""
+        result = find_stale_automations(
+            automations=[],
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        assert result == []
+
+    def test_filters_non_automation_entities(self):
+        """Only automation.* entities are processed."""
+        automations = [
+            {
+                "entity_id": "light.living_room",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Living Room Light",
+                    "last_triggered": None,
+                },
+            },
+            {
+                "entity_id": "switch.bedroom",
+                "state": "off",
+                "attributes": {
+                    "friendly_name": "Bedroom Switch",
+                    "last_triggered": None,
+                },
+            },
+            {
+                "entity_id": "script.morning",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Morning Script",
+                    "last_triggered": None,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        # None should be returned - these are not automation entities
+        assert result == []
+
+    def test_identifies_stale_automation(self):
+        """Automation with last_triggered older than threshold is stale."""
+        from homeassistant.util import dt as dt_util
+
+        now = dt_util.utcnow()
+        # 45 days ago
+        old_date = (now - timedelta(days=45)).isoformat()
+
+        automations = [
+            {
+                "entity_id": "automation.old_lights",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Old Lights Automation",
+                    "last_triggered": old_date,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        assert len(result) == 1
+        assert result[0].automation_id == "automation.old_lights"
+        assert result[0].days_since_triggered >= 45
+
+    def test_excludes_recent_automation(self):
+        """Automation triggered recently is not stale."""
+        from homeassistant.util import dt as dt_util
+
+        now = dt_util.utcnow()
+        # 5 days ago - recent
+        recent_date = (now - timedelta(days=5)).isoformat()
+
+        automations = [
+            {
+                "entity_id": "automation.recent_lights",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Recent Lights Automation",
+                    "last_triggered": recent_date,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        assert result == []
+
+    def test_never_triggered_automation_is_stale(self):
+        """Automation with no last_triggered gets days_since=999."""
+        automations = [
+            {
+                "entity_id": "automation.never_used",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Never Used Automation",
+                    "last_triggered": None,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        assert len(result) == 1
+        assert result[0].automation_id == "automation.never_used"
+        assert result[0].days_since_triggered == 999
+        assert result[0].last_triggered is None
+
+    def test_pattern_matching_excludes_matching_automations(self):
+        """Ignore patterns filter correctly."""
+        automations = [
+            {
+                "entity_id": "automation.test_automation",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Test Automation",
+                    "last_triggered": None,
+                },
+            },
+            {
+                "entity_id": "automation.production_lights",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Production Lights",
+                    "last_triggered": None,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=["test_*"],
+        )
+        # Only production_lights should be returned
+        assert len(result) == 1
+        assert result[0].automation_id == "automation.production_lights"
+
+    def test_pattern_matching_case_insensitive(self):
+        """Pattern matching is case-insensitive."""
+        automations = [
+            {
+                "entity_id": "automation.TEST_automation",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "TEST Automation",
+                    "last_triggered": None,
+                },
+            },
+            {
+                "entity_id": "automation.Test_Lights",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Test Lights",
+                    "last_triggered": None,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=["test_*"],
+        )
+        # Both should be filtered out (case-insensitive)
+        assert result == []
+
+    def test_pattern_matching_glob_wildcards(self):
+        """Glob patterns like test_* work."""
+        automations = [
+            {
+                "entity_id": "automation.test_morning",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Test Morning",
+                    "last_triggered": None,
+                },
+            },
+            {
+                "entity_id": "automation.test_evening",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Test Evening",
+                    "last_triggered": None,
+                },
+            },
+            {
+                "entity_id": "automation.production_morning",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Production Morning",
+                    "last_triggered": None,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=["test_*"],
+        )
+        # Only production_morning should remain
+        assert len(result) == 1
+        assert result[0].automation_id == "automation.production_morning"
+
+    def test_disabled_automation_is_marked(self):
+        """Automation with state='off' has is_disabled=True."""
+        automations = [
+            {
+                "entity_id": "automation.disabled_lights",
+                "state": "off",
+                "attributes": {
+                    "friendly_name": "Disabled Lights",
+                    "last_triggered": None,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        assert len(result) == 1
+        assert result[0].is_disabled is True
+
+    def test_enabled_automation_is_marked(self):
+        """Automation with state='on' has is_disabled=False."""
+        automations = [
+            {
+                "entity_id": "automation.enabled_lights",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Enabled Lights",
+                    "last_triggered": None,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        assert len(result) == 1
+        assert result[0].is_disabled is False
+
+    def test_results_sorted_by_days_descending(self):
+        """Results sorted by days_since_triggered descending."""
+        from homeassistant.util import dt as dt_util
+
+        now = dt_util.utcnow()
+        date_60_days = (now - timedelta(days=60)).isoformat()
+        date_45_days = (now - timedelta(days=45)).isoformat()
+        date_35_days = (now - timedelta(days=35)).isoformat()
+
+        automations = [
+            {
+                "entity_id": "automation.medium_stale",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Medium Stale",
+                    "last_triggered": date_45_days,
+                },
+            },
+            {
+                "entity_id": "automation.oldest_stale",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Oldest Stale",
+                    "last_triggered": date_60_days,
+                },
+            },
+            {
+                "entity_id": "automation.least_stale",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Least Stale",
+                    "last_triggered": date_35_days,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        assert len(result) == 3
+        # Should be sorted by days_since_triggered descending
+        assert result[0].automation_id == "automation.oldest_stale"
+        assert result[1].automation_id == "automation.medium_stale"
+        assert result[2].automation_id == "automation.least_stale"
+        # Verify days are actually in descending order
+        assert result[0].days_since_triggered >= result[1].days_since_triggered
+        assert result[1].days_since_triggered >= result[2].days_since_triggered
+
+    def test_extracts_friendly_name_from_attributes(self):
+        """friendly_name taken from attributes."""
+        automations = [
+            {
+                "entity_id": "automation.custom_name",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "My Custom Friendly Name",
+                    "last_triggered": None,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        assert len(result) == 1
+        assert result[0].friendly_name == "My Custom Friendly Name"
+
+    def test_friendly_name_falls_back_to_entity_id(self):
+        """friendly_name falls back to entity_id when not in attributes."""
+        automations = [
+            {
+                "entity_id": "automation.no_friendly_name",
+                "state": "on",
+                "attributes": {
+                    "last_triggered": None,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        assert len(result) == 1
+        assert result[0].friendly_name == "automation.no_friendly_name"
+
+    def test_handles_missing_attributes(self):
+        """Handles automation without attributes key."""
+        automations = [
+            {
+                "entity_id": "automation.no_attributes",
+                "state": "on",
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        assert len(result) == 1
+        assert result[0].automation_id == "automation.no_attributes"
+        assert result[0].days_since_triggered == 999  # Never triggered
+
+    def test_handles_invalid_timestamp(self):
+        """Handles automation with invalid last_triggered timestamp."""
+        automations = [
+            {
+                "entity_id": "automation.bad_timestamp",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Bad Timestamp",
+                    "last_triggered": "not-a-valid-timestamp",
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        assert len(result) == 1
+        # Invalid timestamp should result in days_since=999
+        assert result[0].days_since_triggered == 999
+
+    def test_multiple_ignore_patterns(self):
+        """Multiple ignore patterns work together."""
+        automations = [
+            {
+                "entity_id": "automation.test_one",
+                "state": "on",
+                "attributes": {"last_triggered": None},
+            },
+            {
+                "entity_id": "automation.debug_two",
+                "state": "on",
+                "attributes": {"last_triggered": None},
+            },
+            {
+                "entity_id": "automation.production_three",
+                "state": "on",
+                "attributes": {"last_triggered": None},
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=["test_*", "debug_*"],
+        )
+        assert len(result) == 1
+        assert result[0].automation_id == "automation.production_three"
+
+    def test_exact_threshold_boundary(self):
+        """Automation exactly at threshold is included."""
+        from homeassistant.util import dt as dt_util
+
+        now = dt_util.utcnow()
+        # Exactly 30 days ago
+        date_30_days = (now - timedelta(days=30)).isoformat()
+
+        automations = [
+            {
+                "entity_id": "automation.exact_threshold",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Exact Threshold",
+                    "last_triggered": date_30_days,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        # Should be included (>= threshold)
+        assert len(result) == 1
+        assert result[0].days_since_triggered >= 30
+
+    def test_just_under_threshold_excluded(self):
+        """Automation just under threshold is excluded."""
+        from homeassistant.util import dt as dt_util
+
+        now = dt_util.utcnow()
+        # 29 days ago
+        date_29_days = (now - timedelta(days=29)).isoformat()
+
+        automations = [
+            {
+                "entity_id": "automation.under_threshold",
+                "state": "on",
+                "attributes": {
+                    "friendly_name": "Under Threshold",
+                    "last_triggered": date_29_days,
+                },
+            },
+        ]
+        result = find_stale_automations(
+            automations=automations,
+            threshold_days=30,
+            ignore_patterns=[],
+        )
+        # Should be excluded (< threshold)
+        assert result == []
 
 
 # =============================================================================

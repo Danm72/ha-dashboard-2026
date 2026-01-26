@@ -23,16 +23,20 @@ from .const import (
     CONF_DOMAIN_FILTER_MODE,
     CONF_FILTERED_DOMAINS,
     CONF_FILTERED_USERS,
+    CONF_IGNORE_AUTOMATION_PATTERNS,
     CONF_LOOKBACK_DAYS,
     CONF_MIN_OCCURRENCES,
+    CONF_STALE_THRESHOLD_DAYS,
     CONF_USER_FILTER_MODE,
     DEFAULT_ANALYSIS_INTERVAL,
     DEFAULT_CONSISTENCY_THRESHOLD,
     DEFAULT_DOMAIN_FILTER_MODE,
     DEFAULT_FILTERED_DOMAINS,
     DEFAULT_FILTERED_USERS,
+    DEFAULT_IGNORE_AUTOMATION_PATTERNS,
     DEFAULT_LOOKBACK_DAYS,
     DEFAULT_MIN_OCCURRENCES,
+    DEFAULT_STALE_THRESHOLD_DAYS,
     DEFAULT_USER_FILTER_MODE,
     DOMAIN,
 )
@@ -77,6 +81,18 @@ def get_config_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
                 CONF_FILTERED_DOMAINS,
                 default=",".join(defaults.get(CONF_FILTERED_DOMAINS, DEFAULT_FILTERED_DOMAINS)),
             ): str,
+            vol.Optional(
+                CONF_STALE_THRESHOLD_DAYS,
+                default=defaults.get(CONF_STALE_THRESHOLD_DAYS, DEFAULT_STALE_THRESHOLD_DAYS),
+            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=365)),
+            vol.Optional(
+                CONF_IGNORE_AUTOMATION_PATTERNS,
+                default=",".join(
+                    defaults.get(
+                        CONF_IGNORE_AUTOMATION_PATTERNS, DEFAULT_IGNORE_AUTOMATION_PATTERNS
+                    )
+                ),
+            ): str,
         }
     )
 
@@ -103,6 +119,11 @@ class AutomationSuggestionsConfigFlow(ConfigFlow, domain=DOMAIN):
                 for d in user_input.get(CONF_FILTERED_DOMAINS, "").split(",")
                 if d.strip()
             ]
+            ignore_patterns = [
+                p.strip()
+                for p in user_input.get(CONF_IGNORE_AUTOMATION_PATTERNS, "").split(",")
+                if p.strip()
+            ]
 
             return self.async_create_entry(
                 title="Automation Suggestions",
@@ -119,6 +140,10 @@ class AutomationSuggestionsConfigFlow(ConfigFlow, domain=DOMAIN):
                         CONF_DOMAIN_FILTER_MODE, DEFAULT_DOMAIN_FILTER_MODE
                     ),
                     CONF_FILTERED_DOMAINS: filtered_domains,
+                    CONF_STALE_THRESHOLD_DAYS: int(
+                        user_input.get(CONF_STALE_THRESHOLD_DAYS, DEFAULT_STALE_THRESHOLD_DAYS)
+                    ),
+                    CONF_IGNORE_AUTOMATION_PATTERNS: ignore_patterns,
                 },
             )
 
@@ -151,6 +176,11 @@ class AutomationSuggestionsOptionsFlow(OptionsFlowWithConfigEntry):
                 for d in user_input.get(CONF_FILTERED_DOMAINS, "").split(",")
                 if d.strip()
             ]
+            ignore_patterns = [
+                p.strip()
+                for p in user_input.get(CONF_IGNORE_AUTOMATION_PATTERNS, "").split(",")
+                if p.strip()
+            ]
 
             return self.async_create_entry(
                 title="",
@@ -167,6 +197,10 @@ class AutomationSuggestionsOptionsFlow(OptionsFlowWithConfigEntry):
                         CONF_DOMAIN_FILTER_MODE, DEFAULT_DOMAIN_FILTER_MODE
                     ),
                     CONF_FILTERED_DOMAINS: filtered_domains,
+                    CONF_STALE_THRESHOLD_DAYS: int(
+                        user_input.get(CONF_STALE_THRESHOLD_DAYS, DEFAULT_STALE_THRESHOLD_DAYS)
+                    ),
+                    CONF_IGNORE_AUTOMATION_PATTERNS: ignore_patterns,
                 },
             )
 

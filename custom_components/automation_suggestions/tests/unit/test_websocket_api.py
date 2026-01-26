@@ -7,6 +7,7 @@ from custom_components.automation_suggestions.const import DOMAIN
 from custom_components.automation_suggestions.websocket_api import (
     _get_coordinator,
     websocket_list_suggestions,
+    websocket_list_stale,
     websocket_subscribe_suggestions,
 )
 
@@ -359,6 +360,7 @@ class TestWebsocketSubscribeSuggestions:
         mock_unsub = MagicMock()
         mock_coordinator = MagicMock()
         mock_coordinator.data = []
+        mock_coordinator.stale_automations = []
         mock_coordinator.async_add_listener.return_value = mock_unsub
         mock_entry = MagicMock()
         mock_entry.runtime_data = mock_coordinator
@@ -383,6 +385,7 @@ class TestWebsocketSubscribeSuggestions:
         suggestions = [create_test_suggestion(i) for i in range(3)]
         mock_coordinator = MagicMock()
         mock_coordinator.data = suggestions
+        mock_coordinator.stale_automations = []
         mock_coordinator.async_add_listener.return_value = mock_unsub
         mock_entry = MagicMock()
         mock_entry.runtime_data = mock_coordinator
@@ -396,12 +399,13 @@ class TestWebsocketSubscribeSuggestions:
         # Should send initial event message
         connection.send_message.assert_called_once()
 
-    def test_does_not_send_message_when_data_is_none(self):
-        """Should not send message when coordinator data is None."""
+    def test_sends_message_with_empty_data_when_data_is_none(self):
+        """Should send message with empty data when coordinator data is None."""
         hass = MagicMock()
         mock_unsub = MagicMock()
         mock_coordinator = MagicMock()
         mock_coordinator.data = None
+        mock_coordinator.stale_automations = []
         mock_coordinator.async_add_listener.return_value = mock_unsub
         mock_entry = MagicMock()
         mock_entry.runtime_data = mock_coordinator
@@ -412,8 +416,8 @@ class TestWebsocketSubscribeSuggestions:
 
         websocket_subscribe_suggestions(hass, connection, msg)
 
-        # Should not send event message when data is None
-        connection.send_message.assert_not_called()
+        # Should send event message with empty data
+        connection.send_message.assert_called_once()
 
     def test_listener_callback_sends_update(self):
         """Should send update when listener callback is invoked."""
@@ -422,6 +426,7 @@ class TestWebsocketSubscribeSuggestions:
         suggestions = [create_test_suggestion(0)]
         mock_coordinator = MagicMock()
         mock_coordinator.data = suggestions
+        mock_coordinator.stale_automations = []
         mock_coordinator.async_add_listener.return_value = mock_unsub
         mock_entry = MagicMock()
         mock_entry.runtime_data = mock_coordinator
@@ -444,12 +449,13 @@ class TestWebsocketSubscribeSuggestions:
         # Should send a message
         connection.send_message.assert_called_once()
 
-    def test_listener_callback_does_not_send_when_data_none(self):
-        """Should not send update when data becomes None."""
+    def test_listener_callback_sends_empty_when_data_none(self):
+        """Should send update with empty list when data becomes None."""
         hass = MagicMock()
         mock_unsub = MagicMock()
         mock_coordinator = MagicMock()
         mock_coordinator.data = [create_test_suggestion(0)]
+        mock_coordinator.stale_automations = []
         mock_coordinator.async_add_listener.return_value = mock_unsub
         mock_entry = MagicMock()
         mock_entry.runtime_data = mock_coordinator
@@ -470,8 +476,8 @@ class TestWebsocketSubscribeSuggestions:
         # Invoke the callback
         listener_callback()
 
-        # Should not send a message when data is None
-        connection.send_message.assert_not_called()
+        # Should send a message with empty suggestions
+        connection.send_message.assert_called_once()
 
     def test_uses_correct_message_id_in_error(self):
         """Should use the correct message ID when sending error."""
@@ -491,6 +497,7 @@ class TestWebsocketSubscribeSuggestions:
         mock_unsub = MagicMock()
         mock_coordinator = MagicMock()
         mock_coordinator.data = []
+        mock_coordinator.stale_automations = []
         mock_coordinator.async_add_listener.return_value = mock_unsub
         mock_entry = MagicMock()
         mock_entry.runtime_data = mock_coordinator
@@ -508,8 +515,8 @@ class TestWebsocketSubscribeSuggestions:
 class TestAsyncRegisterWebsocketApi:
     """Tests for async_register_websocket_api function."""
 
-    def test_registers_both_commands(self):
-        """Should register both list and subscribe commands."""
+    def test_registers_all_commands(self):
+        """Should register list, list_stale, and subscribe commands."""
         from custom_components.automation_suggestions.websocket_api import (
             async_register_websocket_api,
         )
@@ -521,12 +528,13 @@ class TestAsyncRegisterWebsocketApi:
         ) as mock_ws_api:
             async_register_websocket_api(hass)
 
-            # Should register both commands
-            assert mock_ws_api.async_register_command.call_count == 2
+            # Should register all three commands
+            assert mock_ws_api.async_register_command.call_count == 3
 
             # Verify the commands were registered
             registered_handlers = [
                 call[0][1] for call in mock_ws_api.async_register_command.call_args_list
             ]
             assert websocket_list_suggestions in registered_handlers
+            assert websocket_list_stale in registered_handlers
             assert websocket_subscribe_suggestions in registered_handlers

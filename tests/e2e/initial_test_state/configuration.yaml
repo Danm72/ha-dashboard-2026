@@ -12,5 +12,8 @@ recorder:
 # Enable logbook
 logbook:
 
+# Enable automation integration for E2E tests
+automation: !include automations.yaml
+
 # Demo platform for test entities
 demo:

@@ -11,6 +11,8 @@ CONF_USER_FILTER_MODE = "user_filter_mode"
 CONF_FILTERED_USERS = "filtered_users"
 CONF_DOMAIN_FILTER_MODE = "domain_filter_mode"
 CONF_FILTERED_DOMAINS = "filtered_domains"
+CONF_STALE_THRESHOLD_DAYS = "stale_threshold_days"
+CONF_IGNORE_AUTOMATION_PATTERNS = "ignore_automation_patterns"
 
 # Defaults
 DEFAULT_ANALYSIS_INTERVAL = 7  # days
@@ -22,6 +24,8 @@ DEFAULT_USER_FILTER_MODE = "none"
 DEFAULT_FILTERED_USERS: list[str] = []
 DEFAULT_DOMAIN_FILTER_MODE = "none"
 DEFAULT_FILTERED_DOMAINS: list[str] = []
+DEFAULT_STALE_THRESHOLD_DAYS = 30
+DEFAULT_IGNORE_AUTOMATION_PATTERNS: list[str] = []
 
 # Notification threshold for high-confidence suggestions
 HIGH_CONFIDENCE_THRESHOLD = 0.80
