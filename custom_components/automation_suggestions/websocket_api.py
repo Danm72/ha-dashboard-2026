@@ -22,6 +22,7 @@ def async_register_websocket_api(hass: HomeAssistant) -> None:
     """Register WebSocket API handlers."""
     websocket_api.async_register_command(hass, websocket_list_suggestions)
     websocket_api.async_register_command(hass, websocket_subscribe_suggestions)
+    websocket_api.async_register_command(hass, websocket_list_stale)
 
 
 @websocket_api.websocket_command(
@@ -67,6 +68,49 @@ def websocket_list_suggestions(
 
 @websocket_api.websocket_command(
     {
+        vol.Required("type"): "automation_suggestions/list_stale",
+        vol.Optional("page", default=1): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Optional("page_size", default=20): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+    }
+)
+@callback
+def websocket_list_stale(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict,
+) -> None:
+    """Handle list stale automations WebSocket command."""
+    coordinator = _get_coordinator(hass)
+    if coordinator is None:
+        connection.send_result(
+            msg["id"], {"stale_automations": [], "total": 0, "page": 1, "pages": 0}
+        )
+        return
+
+    stale = coordinator.stale_automations
+    total = len(stale)
+    page = msg["page"]
+    page_size = msg["page_size"]
+    pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+    start = (page - 1) * page_size
+    end = start + page_size
+    page_stale = [s.to_dict() for s in stale[start:end]]
+
+    connection.send_result(
+        msg["id"],
+        {
+            "stale_automations": page_stale,
+            "total": total,
+            "page": page,
+            "pages": pages,
+            "page_size": page_size,
+        },
+    )
+
+
+@websocket_api.websocket_command(
+    {
         vol.Required("type"): "automation_suggestions/subscribe",
     }
 )
@@ -85,14 +129,16 @@ def websocket_subscribe_suggestions(
     @callback
     def async_on_update() -> None:
         """Send update when coordinator data changes."""
-        if coordinator.data is None:
-            return
+        suggestions = coordinator.data if coordinator.data else []
+        stale = coordinator.stale_automations
         connection.send_message(
             websocket_api.event_message(
                 msg["id"],
                 {
-                    "suggestions": [s.to_dict() for s in coordinator.data],
-                    "total": len(coordinator.data),
+                    "suggestions": [s.to_dict() for s in suggestions],
+                    "total": len(suggestions),
+                    "stale_automations": [s.to_dict() for s in stale],
+                    "stale_total": len(stale),
                 },
             )
         )

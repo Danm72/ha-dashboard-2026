@@ -15,6 +15,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from fnmatch import fnmatch
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
@@ -129,6 +130,33 @@ class Suggestion:
             last_occurrence=data["last_occurrence"],
             friendly_name=data.get("friendly_name", ""),
         )
+
+
+@dataclass
+class StaleAutomation:
+    """Represents a stale automation that hasn't triggered recently."""
+
+    automation_id: str  # entity_id (e.g., automation.old_lights)
+    friendly_name: str  # Human-readable name
+    last_triggered: str | None  # ISO timestamp or None
+    days_since_triggered: int  # Days since trigger (999 if never)
+    is_disabled: bool  # Whether automation is disabled
+
+    @property
+    def id(self) -> str:
+        """ID for dismissal - use entity_id directly."""
+        return self.automation_id
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for serialization."""
+        return {
+            "id": self.id,
+            "automation_id": self.automation_id,
+            "friendly_name": self.friendly_name,
+            "last_triggered": self.last_triggered,
+            "days_since_triggered": self.days_since_triggered,
+            "is_disabled": self.is_disabled,
+        }
 
 
 # -----------------------------------------------------------------------------
@@ -363,6 +391,71 @@ def calculate_suggested_time(window: str) -> str:
         return f"{hour:02d}:{suggested_minute:02d}"
     except (ValueError, AttributeError):
         return "00:00"
+
+
+def find_stale_automations(
+    automations: list[dict[str, Any]],
+    threshold_days: int,
+    ignore_patterns: list[str],
+) -> list[StaleAutomation]:
+    """Find automations that haven't triggered in a while.
+
+    Args:
+        automations: List of automation state dicts with entity_id, state, attributes.
+        threshold_days: Number of days without triggering to consider stale.
+        ignore_patterns: List of glob patterns to exclude (matched against object_id).
+
+    Returns:
+        List of StaleAutomation objects for automations exceeding threshold.
+    """
+    from homeassistant.util import dt as dt_util
+
+    now = dt_util.utcnow()
+    stale: list[StaleAutomation] = []
+
+    for auto in automations:
+        entity_id = auto.get("entity_id", "")
+        if not entity_id.startswith("automation."):
+            continue
+
+        # Extract object_id for pattern matching
+        object_id = entity_id.split(".", 1)[1] if "." in entity_id else entity_id
+
+        # Check ignore patterns (case-insensitive)
+        if any(fnmatch(object_id.lower(), pattern.lower()) for pattern in ignore_patterns):
+            continue
+
+        attributes = auto.get("attributes", {})
+        friendly_name = attributes.get("friendly_name", entity_id)
+        last_triggered_str = attributes.get("last_triggered")
+        state = auto.get("state", "")
+        is_disabled = state == "off"
+
+        # Calculate days since triggered
+        if last_triggered_str:
+            last_triggered_dt = parse_timestamp(last_triggered_str)
+            if last_triggered_dt:
+                days_since = (now - last_triggered_dt).days
+            else:
+                days_since = 999
+        else:
+            days_since = 999
+
+        # Check if stale
+        if days_since >= threshold_days:
+            stale.append(
+                StaleAutomation(
+                    automation_id=entity_id,
+                    friendly_name=friendly_name,
+                    last_triggered=last_triggered_str,
+                    days_since_triggered=days_since,
+                    is_disabled=is_disabled,
+                )
+            )
+
+    # Sort by days_since_triggered descending
+    stale.sort(key=lambda s: s.days_since_triggered, reverse=True)
+    return stale
 
 
 def analyze_patterns(

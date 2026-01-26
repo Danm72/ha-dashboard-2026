@@ -8,7 +8,9 @@
           "analysis_interval": "Analysis interval (days)",
           "lookback_days": "Days of history to analyze",
           "min_occurrences": "Minimum occurrences for pattern",
-          "consistency_threshold": "Consistency threshold (0-1)"
+          "consistency_threshold": "Consistency threshold (0-1)",
+          "stale_threshold_days": "Stale automation threshold (days)",
+          "ignore_automation_patterns": "Ignore automation patterns (comma-separated)"
         }
       }
     },
@@ -27,7 +29,9 @@
           "analysis_interval": "Analysis interval (days)",
           "lookback_days": "Days of history to analyze",
           "min_occurrences": "Minimum occurrences for pattern",
-          "consistency_threshold": "Consistency threshold (0-1)"
+          "consistency_threshold": "Consistency threshold (0-1)",
+          "stale_threshold_days": "Stale automation threshold (days)",
+          "ignore_automation_patterns": "Ignore automation patterns (comma-separated)"
         }
       }
     }
@@ -42,6 +46,9 @@
       },
       "last_analysis": {
         "name": "Last analysis"
+      },
+      "stale_count": {
+        "name": "Stale Automations Count"
       }
     },
     "binary_sensor": {

@@ -12,7 +12,9 @@
           "user_filter_mode": "Filter users",
           "filtered_users": "User IDs to filter",
           "domain_filter_mode": "Filter domains",
-          "filtered_domains": "Domains to filter"
+          "filtered_domains": "Domains to filter",
+          "stale_threshold_days": "Stale automation threshold (days)",
+          "ignore_automation_patterns": "Ignore automation patterns (comma-separated)"
         },
         "data_description": {
           "analysis_interval": "How often to scan your logbook for patterns. Lower values find patterns faster but use more resources.",
@@ -46,7 +48,9 @@
           "user_filter_mode": "Filter users",
           "filtered_users": "User IDs to filter",
           "domain_filter_mode": "Filter domains",
-          "filtered_domains": "Domains to filter"
+          "filtered_domains": "Domains to filter",
+          "stale_threshold_days": "Stale automation threshold (days)",
+          "ignore_automation_patterns": "Ignore automation patterns (comma-separated)"
         },
         "data_description": {
           "analysis_interval": "How often to scan your logbook for patterns. Lower values find patterns faster but use more resources.",
@@ -89,6 +93,9 @@
             "name": "Suggestions found"
           }
         }
+      },
+      "stale_count": {
+        "name": "Stale Automations Count"
       }
     },
     "binary_sensor": {
