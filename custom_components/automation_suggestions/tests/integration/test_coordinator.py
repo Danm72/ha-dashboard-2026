@@ -225,3 +225,331 @@ class TestCoordinator:
             # Since we're replacing the method, let's verify it was called
             assert len(notification_calls) == 1
             assert notification_calls[0] == []
+
+
+class TestStaleAutomationDetection:
+    """Test stale automation detection in the coordinator."""
+
+    @pytest.mark.asyncio
+    async def test_stale_detection_on_refresh(self, hass, config_entry, mock_analyzer, mock_store):
+        """Test coordinator detects stale automations during refresh."""
+        from custom_components.automation_suggestions.analyzer import StaleAutomation
+
+        config_entry.add_to_hass(hass)
+
+        # Mock find_stale_automations to return one stale automation
+        stale_result = [
+            StaleAutomation(
+                automation_id="automation.old_backup",
+                friendly_name="Old Backup Automation",
+                last_triggered="2025-12-01T10:00:00+00:00",
+                days_since_triggered=56,
+                is_disabled=False,
+            ),
+        ]
+
+        with patch(
+            "custom_components.automation_suggestions.coordinator.find_stale_automations",
+            return_value=stale_result,
+        ):
+            coordinator = AutomationSuggestionsCoordinator(hass, config_entry)
+            await coordinator.async_load_persisted()
+            await coordinator.async_refresh()
+
+        # Should detect the old automation as stale
+        assert len(coordinator.stale_automations) == 1
+        assert coordinator.stale_automations[0].automation_id == "automation.old_backup"
+
+    @pytest.mark.asyncio
+    async def test_storage_migration_v1_to_v2(self, hass, config_entry, mock_analyzer):
+        """Test v1 storage (without dismissed_stale) migrates correctly to v2."""
+        config_entry.add_to_hass(hass)
+
+        # Mock v1 storage format (no dismissed_stale key)
+        with patch(
+            "custom_components.automation_suggestions.coordinator.Store"
+        ) as mock_store_class:
+            mock_store = AsyncMock()
+            mock_store.async_load = AsyncMock(
+                return_value={
+                    "dismissed": ["suggestion_1", "suggestion_2"],
+                    # Note: no "dismissed_stale" key - this is v1 format
+                }
+            )
+            mock_store.async_save = AsyncMock()
+            mock_store_class.return_value = mock_store
+
+            coordinator = AutomationSuggestionsCoordinator(hass, config_entry)
+            await coordinator.async_load_persisted()
+
+            # V1 data should be loaded successfully
+            assert "suggestion_1" in coordinator.dismissed
+            assert "suggestion_2" in coordinator.dismissed
+
+            # dismissed_stale should be initialized as empty set
+            assert coordinator._dismissed_stale == set()
+
+    @pytest.mark.asyncio
+    async def test_dismissed_stale_filters_results(self, hass, config_entry, mock_analyzer):
+        """Test dismissed stale automations are filtered from stale_automations property."""
+        from custom_components.automation_suggestions.analyzer import StaleAutomation
+
+        config_entry.add_to_hass(hass)
+
+        # Create two stale automations - one will be dismissed
+        stale_result = [
+            StaleAutomation(
+                automation_id="automation.old_backup",
+                friendly_name="Old Backup Automation",
+                last_triggered="2025-12-01T10:00:00+00:00",
+                days_since_triggered=56,
+                is_disabled=False,
+            ),
+            StaleAutomation(
+                automation_id="automation.another_old",
+                friendly_name="Another Old Automation",
+                last_triggered="2025-11-01T10:00:00+00:00",
+                days_since_triggered=86,
+                is_disabled=False,
+            ),
+        ]
+
+        # Mock storage with a dismissed stale automation
+        with patch(
+            "custom_components.automation_suggestions.coordinator.Store"
+        ) as mock_store_class:
+            mock_store = AsyncMock()
+            mock_store.async_load = AsyncMock(
+                return_value={
+                    "dismissed": [],
+                    "dismissed_stale": ["automation.old_backup"],
+                }
+            )
+            mock_store.async_save = AsyncMock()
+            mock_store_class.return_value = mock_store
+
+            with patch(
+                "custom_components.automation_suggestions.coordinator.find_stale_automations",
+                return_value=stale_result,
+            ):
+                coordinator = AutomationSuggestionsCoordinator(hass, config_entry)
+                await coordinator.async_load_persisted()
+                await coordinator.async_refresh()
+
+            # Internal list should have both
+            assert len(coordinator._stale_automations) == 2
+
+            # But stale_automations property should filter out dismissed
+            assert len(coordinator.stale_automations) == 1
+            assert coordinator.stale_automations[0].automation_id == "automation.another_old"
+
+    @pytest.mark.asyncio
+    async def test_stale_detection_respects_threshold(
+        self, hass, config_entry, mock_analyzer, mock_store
+    ):
+        """Test stale detection uses configured threshold_days."""
+        from custom_components.automation_suggestions.analyzer import StaleAutomation
+        from custom_components.automation_suggestions.const import CONF_STALE_THRESHOLD_DAYS
+
+        config_entry.add_to_hass(hass)
+
+        # Update config with shorter threshold
+        hass.config_entries.async_update_entry(
+            config_entry,
+            options={**config_entry.options, CONF_STALE_THRESHOLD_DAYS: 10},
+        )
+
+        # This test verifies the coordinator passes threshold to find_stale_automations
+        # We'll capture the call args to verify
+        stale_result = [
+            StaleAutomation(
+                automation_id="automation.stale_with_short_threshold",
+                friendly_name="Stale with Short Threshold",
+                last_triggered="2026-01-11T10:00:00+00:00",
+                days_since_triggered=15,
+                is_disabled=False,
+            ),
+        ]
+
+        with patch(
+            "custom_components.automation_suggestions.coordinator.find_stale_automations",
+            return_value=stale_result,
+        ) as mock_find_stale:
+            coordinator = AutomationSuggestionsCoordinator(hass, config_entry)
+            await coordinator.async_load_persisted()
+            await coordinator.async_refresh()
+
+            # Verify find_stale_automations was called with the correct threshold
+            assert mock_find_stale.called
+            call_args = mock_find_stale.call_args
+            # Second positional arg should be threshold_days
+            assert call_args[0][1] == 10
+
+        # Verify result
+        assert len(coordinator.stale_automations) == 1
+        assert (
+            coordinator.stale_automations[0].automation_id
+            == "automation.stale_with_short_threshold"
+        )
+
+    @pytest.mark.asyncio
+    async def test_stale_detection_respects_ignore_patterns(
+        self, hass, config_entry, mock_analyzer, mock_store
+    ):
+        """Test stale detection respects ignore_automation_patterns config."""
+        from custom_components.automation_suggestions.analyzer import StaleAutomation
+        from custom_components.automation_suggestions.const import (
+            CONF_IGNORE_AUTOMATION_PATTERNS,
+        )
+
+        config_entry.add_to_hass(hass)
+
+        # Update config with ignore patterns
+        hass.config_entries.async_update_entry(
+            config_entry,
+            options={**config_entry.options, CONF_IGNORE_AUTOMATION_PATTERNS: ["test_*"]},
+        )
+
+        # Return only non-ignored automation
+        stale_result = [
+            StaleAutomation(
+                automation_id="automation.old_lights",
+                friendly_name="Old Lights",
+                last_triggered="2025-12-01T10:00:00+00:00",
+                days_since_triggered=56,
+                is_disabled=False,
+            ),
+        ]
+
+        with patch(
+            "custom_components.automation_suggestions.coordinator.find_stale_automations",
+            return_value=stale_result,
+        ) as mock_find_stale:
+            coordinator = AutomationSuggestionsCoordinator(hass, config_entry)
+            await coordinator.async_load_persisted()
+            await coordinator.async_refresh()
+
+            # Verify find_stale_automations was called with the ignore patterns
+            assert mock_find_stale.called
+            call_args = mock_find_stale.call_args
+            # Third positional arg should be ignore_patterns
+            assert call_args[0][2] == ["test_*"]
+
+        # Only old_lights should be returned (test_backup filtered by find_stale_automations)
+        assert len(coordinator.stale_automations) == 1
+        assert coordinator.stale_automations[0].automation_id == "automation.old_lights"
+
+    @pytest.mark.asyncio
+    async def test_clear_dismissed_clears_both_sets(self, hass, config_entry, mock_analyzer):
+        """Test clear_dismissed clears both dismissed and dismissed_stale sets."""
+        config_entry.add_to_hass(hass)
+
+        with patch(
+            "custom_components.automation_suggestions.coordinator.Store"
+        ) as mock_store_class:
+            mock_store = AsyncMock()
+            mock_store.async_load = AsyncMock(
+                return_value={
+                    "dismissed": ["suggestion_1"],
+                    "dismissed_stale": ["automation.old_backup"],
+                }
+            )
+            mock_store.async_save = AsyncMock()
+            mock_store_class.return_value = mock_store
+
+            coordinator = AutomationSuggestionsCoordinator(hass, config_entry)
+            await coordinator.async_load_persisted()
+
+            # Verify both sets have data
+            assert len(coordinator.dismissed) == 1
+            assert len(coordinator._dismissed_stale) == 1
+
+            # Clear dismissed
+            await coordinator.async_clear_dismissed()
+
+            # Both should be empty
+            assert len(coordinator.dismissed) == 0
+            assert len(coordinator._dismissed_stale) == 0
+
+            # Storage should be called with both empty
+            mock_store.async_save.assert_called()
+            save_call_args = mock_store.async_save.call_args[0][0]
+            assert save_call_args["dismissed"] == []
+            assert save_call_args["dismissed_stale"] == []
+
+    @pytest.mark.asyncio
+    async def test_stale_detection_handles_disabled_automations(
+        self, hass, config_entry, mock_analyzer, mock_store
+    ):
+        """Test stale detection correctly identifies disabled automations."""
+        from custom_components.automation_suggestions.analyzer import StaleAutomation
+
+        config_entry.add_to_hass(hass)
+
+        # Return both enabled and disabled stale automations
+        stale_result = [
+            StaleAutomation(
+                automation_id="automation.disabled_old",
+                friendly_name="Disabled Old Automation",
+                last_triggered="2025-12-01T10:00:00+00:00",
+                days_since_triggered=56,
+                is_disabled=True,
+            ),
+            StaleAutomation(
+                automation_id="automation.enabled_old",
+                friendly_name="Enabled Old Automation",
+                last_triggered="2025-12-01T10:00:00+00:00",
+                days_since_triggered=56,
+                is_disabled=False,
+            ),
+        ]
+
+        with patch(
+            "custom_components.automation_suggestions.coordinator.find_stale_automations",
+            return_value=stale_result,
+        ):
+            coordinator = AutomationSuggestionsCoordinator(hass, config_entry)
+            await coordinator.async_load_persisted()
+            await coordinator.async_refresh()
+
+        # Both should be detected as stale
+        assert len(coordinator.stale_automations) == 2
+
+        # Verify is_disabled flag is set correctly
+        stale_by_id = {s.automation_id: s for s in coordinator.stale_automations}
+        assert stale_by_id["automation.disabled_old"].is_disabled is True
+        assert stale_by_id["automation.enabled_old"].is_disabled is False
+
+    @pytest.mark.asyncio
+    async def test_stale_detection_handles_never_triggered(
+        self, hass, config_entry, mock_analyzer, mock_store
+    ):
+        """Test stale detection handles automations that never triggered."""
+        from custom_components.automation_suggestions.analyzer import StaleAutomation
+
+        config_entry.add_to_hass(hass)
+
+        # Return an automation that never triggered
+        stale_result = [
+            StaleAutomation(
+                automation_id="automation.never_triggered",
+                friendly_name="Never Triggered",
+                last_triggered=None,
+                days_since_triggered=999,
+                is_disabled=False,
+            ),
+        ]
+
+        with patch(
+            "custom_components.automation_suggestions.coordinator.find_stale_automations",
+            return_value=stale_result,
+        ):
+            coordinator = AutomationSuggestionsCoordinator(hass, config_entry)
+            await coordinator.async_load_persisted()
+            await coordinator.async_refresh()
+
+        # Should be detected as stale
+        assert len(coordinator.stale_automations) == 1
+        assert coordinator.stale_automations[0].automation_id == "automation.never_triggered"
+        assert coordinator.stale_automations[0].last_triggered is None
+        assert coordinator.stale_automations[0].days_since_triggered == 999

@@ -8,8 +8,12 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.automation_suggestions.const import (
     CONF_ANALYSIS_INTERVAL,
     CONF_CONSISTENCY_THRESHOLD,
+    CONF_IGNORE_AUTOMATION_PATTERNS,
     CONF_LOOKBACK_DAYS,
     CONF_MIN_OCCURRENCES,
+    CONF_STALE_THRESHOLD_DAYS,
+    DEFAULT_IGNORE_AUTOMATION_PATTERNS,
+    DEFAULT_STALE_THRESHOLD_DAYS,
     DOMAIN,
 )
 
@@ -22,6 +26,8 @@ def mock_config_data():
         CONF_LOOKBACK_DAYS: 14,
         CONF_MIN_OCCURRENCES: 5,
         CONF_CONSISTENCY_THRESHOLD: 0.70,
+        CONF_STALE_THRESHOLD_DAYS: DEFAULT_STALE_THRESHOLD_DAYS,
+        CONF_IGNORE_AUTOMATION_PATTERNS: DEFAULT_IGNORE_AUTOMATION_PATTERNS,
     }
 
 
@@ -104,13 +110,54 @@ def empty_suggestions():
 
 @pytest.fixture
 def mock_store():
-    """Mock the Store for persistence."""
+    """Mock the Store for persistence (v2 format with dismissed_stale)."""
     with patch("custom_components.automation_suggestions.coordinator.Store") as mock_store_class:
         mock_store = AsyncMock()
-        mock_store.async_load = AsyncMock(return_value={"dismissed": []})
+        mock_store.async_load = AsyncMock(return_value={"dismissed": [], "dismissed_stale": []})
         mock_store.async_save = AsyncMock()
         mock_store_class.return_value = mock_store
         yield mock_store
+
+
+@pytest.fixture
+def mock_store_v1():
+    """Mock the Store with v1 format (no dismissed_stale key)."""
+    with patch("custom_components.automation_suggestions.coordinator.Store") as mock_store_class:
+        mock_store = AsyncMock()
+        mock_store.async_load = AsyncMock(return_value={"dismissed": ["old_suggestion"]})
+        mock_store.async_save = AsyncMock()
+        mock_store_class.return_value = mock_store
+        yield mock_store
+
+
+@pytest.fixture
+def mock_stale_automations():
+    """Return sample StaleAutomation instances for tests."""
+    from custom_components.automation_suggestions.analyzer import StaleAutomation
+
+    return [
+        StaleAutomation(
+            automation_id="automation.old_backup",
+            friendly_name="Old Backup Automation",
+            last_triggered="2025-12-01T10:00:00+00:00",
+            days_since_triggered=56,
+            is_disabled=False,
+        ),
+        StaleAutomation(
+            automation_id="automation.never_triggered",
+            friendly_name="Never Triggered",
+            last_triggered=None,
+            days_since_triggered=999,
+            is_disabled=True,
+        ),
+        StaleAutomation(
+            automation_id="automation.disabled_old",
+            friendly_name="Disabled Old Automation",
+            last_triggered="2025-11-15T08:30:00+00:00",
+            days_since_triggered=72,
+            is_disabled=True,
+        ),
+    ]
 
 
 @pytest.fixture(autouse=True)

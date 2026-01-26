@@ -154,3 +154,136 @@ class TestLastAnalysisSensor:
         assert state is not None
         assert state.state != STATE_UNKNOWN
         assert state.attributes.get("status") == "success"
+
+
+class TestStaleCountSensor:
+    """Test the stale automations count sensor."""
+
+    @pytest.mark.asyncio
+    async def test_stale_count_sensor_state(
+        self, hass, config_entry, mock_analyzer, mock_store, mock_stale_automations
+    ):
+        """Test stale count sensor reflects stale automation count."""
+        config_entry.add_to_hass(hass)
+
+        # Mock find_stale_automations to return our test data
+        with patch(
+            "custom_components.automation_suggestions.coordinator.find_stale_automations",
+            return_value=mock_stale_automations[:2],  # Use first 2 from fixture
+        ):
+            await hass.config_entries.async_setup(config_entry.entry_id)
+            await hass.async_block_till_done()
+
+        state = hass.states.get("sensor.automation_suggestions_stale_automations_count")
+        assert state is not None
+        # Should show count of stale automations (2 from mocked return)
+        assert int(state.state) == 2
+        assert state.attributes.get("unit_of_measurement") == "automations"
+
+    @pytest.mark.asyncio
+    async def test_stale_count_sensor_attributes(
+        self, hass, config_entry, mock_analyzer, mock_store, mock_stale_automations
+    ):
+        """Test stale count sensor has stale_automations in extra_state_attributes."""
+        config_entry.add_to_hass(hass)
+
+        # Mock find_stale_automations to return a single stale automation
+        with patch(
+            "custom_components.automation_suggestions.coordinator.find_stale_automations",
+            return_value=[mock_stale_automations[0]],
+        ):
+            await hass.config_entries.async_setup(config_entry.entry_id)
+            await hass.async_block_till_done()
+
+        state = hass.states.get("sensor.automation_suggestions_stale_automations_count")
+        assert state is not None
+
+        stale_automations = state.attributes.get("stale_automations", [])
+        assert len(stale_automations) == 1
+
+        # Verify stale automation structure
+        first = stale_automations[0]
+        assert "automation_id" in first
+        assert "friendly_name" in first
+        assert "last_triggered" in first
+        assert "days_since_triggered" in first
+        assert "is_disabled" in first
+        assert first["automation_id"] == "automation.old_backup"
+
+    @pytest.mark.asyncio
+    async def test_stale_count_sensor_zero_when_empty(
+        self, hass, config_entry, mock_analyzer, mock_store
+    ):
+        """Test stale count sensor is 0 when no stale automations."""
+        config_entry.add_to_hass(hass)
+
+        # Mock find_stale_automations to return empty list
+        with patch(
+            "custom_components.automation_suggestions.coordinator.find_stale_automations",
+            return_value=[],
+        ):
+            await hass.config_entries.async_setup(config_entry.entry_id)
+            await hass.async_block_till_done()
+
+        state = hass.states.get("sensor.automation_suggestions_stale_automations_count")
+        assert state is not None
+        assert state.state == "0"
+        assert state.attributes.get("stale_automations") == []
+
+    @pytest.mark.asyncio
+    async def test_stale_count_excludes_dismissed(
+        self, hass, config_entry, mock_analyzer, mock_stale_automations
+    ):
+        """Test stale count excludes dismissed stale automations."""
+        from custom_components.automation_suggestions.analyzer import StaleAutomation
+
+        config_entry.add_to_hass(hass)
+
+        # Create two stale automations for testing
+        stale_list = [
+            StaleAutomation(
+                automation_id="automation.old_backup",
+                friendly_name="Old Backup Automation",
+                last_triggered="2025-12-01T10:00:00+00:00",
+                days_since_triggered=56,
+                is_disabled=False,
+            ),
+            StaleAutomation(
+                automation_id="automation.another_old",
+                friendly_name="Another Old Automation",
+                last_triggered="2025-11-01T10:00:00+00:00",
+                days_since_triggered=86,
+                is_disabled=False,
+            ),
+        ]
+
+        # Mock storage with a dismissed stale automation
+        with patch(
+            "custom_components.automation_suggestions.coordinator.Store"
+        ) as mock_store_class:
+            mock_store = AsyncMock()
+            mock_store.async_load = AsyncMock(
+                return_value={
+                    "dismissed": [],
+                    "dismissed_stale": ["automation.old_backup"],
+                }
+            )
+            mock_store.async_save = AsyncMock()
+            mock_store_class.return_value = mock_store
+
+            # Mock find_stale_automations to return both stale automations
+            with patch(
+                "custom_components.automation_suggestions.coordinator.find_stale_automations",
+                return_value=stale_list,
+            ):
+                await hass.config_entries.async_setup(config_entry.entry_id)
+                await hass.async_block_till_done()
+
+        state = hass.states.get("sensor.automation_suggestions_stale_automations_count")
+        assert state is not None
+        # Should be 1 because one is dismissed
+        assert state.state == "1"
+
+        stale_automations = state.attributes.get("stale_automations", [])
+        assert len(stale_automations) == 1
+        assert stale_automations[0]["automation_id"] == "automation.another_old"
