@@ -427,17 +427,38 @@ def find_stale_automations(
 
         attributes = auto.get("attributes", {})
         friendly_name = attributes.get("friendly_name", entity_id)
-        last_triggered_str = attributes.get("last_triggered")
+        last_triggered_raw = attributes.get("last_triggered")
         state = auto.get("state", "")
+
+        # Debug logging for stale automation detection
+        _LOGGER.debug(
+            "find_stale_automations: entity_id=%s, last_triggered=%r (type=%s)",
+            entity_id,
+            last_triggered_raw,
+            type(last_triggered_raw).__name__,
+        )
         is_disabled = state == "off"
 
         # Calculate days since triggered
-        if last_triggered_str:
-            last_triggered_dt = parse_timestamp(last_triggered_str)
-            if last_triggered_dt:
-                days_since = (now - last_triggered_dt).days
+        # Handle both datetime objects (from internal HA state) and strings (from API)
+        last_triggered_dt: datetime | None = None
+        last_triggered_str: str | None = None
+
+        if last_triggered_raw is not None:
+            if isinstance(last_triggered_raw, datetime):
+                # Already a datetime object (from HA internal state)
+                last_triggered_dt = last_triggered_raw
+                # Ensure it has timezone info
+                if last_triggered_dt.tzinfo is None:
+                    last_triggered_dt = last_triggered_dt.replace(tzinfo=UTC)
+                last_triggered_str = last_triggered_dt.isoformat()
             else:
-                days_since = 999
+                # Try to parse as string
+                last_triggered_dt = parse_timestamp(last_triggered_raw)
+                last_triggered_str = str(last_triggered_raw) if last_triggered_raw else None
+
+        if last_triggered_dt:
+            days_since = (now - last_triggered_dt).days
         else:
             days_since = 999
 

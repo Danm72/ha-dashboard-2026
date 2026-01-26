@@ -13,6 +13,7 @@ A custom Home Assistant integration that analyzes your manual actions from the l
 - **Rich Sensors**: Exposes suggestion count, top suggestions, and last analysis time
 - **On-demand Actions**: `analyze_now` to trigger analysis, `dismiss` to hide unwanted suggestions
 - **Persistent Notifications**: Shows all suggestions after each analysis run - no dev tools needed
+- **Stale Automation Detection**: Identifies automations that haven't triggered in 30+ days
 
 ## Installation via HACS
 
@@ -119,11 +120,13 @@ type: custom:automation-suggestions-card
 ```
 
 **Card Features:**
+- **Tabbed Interface**: Switch between Suggestions and Stale Automations
 - Displays all suggestions (not just top 5)
 - Grouped by domain with collapsible sections
 - Dismiss button per suggestion
 - "Scan Now" button to trigger immediate analysis
 - Live updates via WebSocket subscription
+- Stale automation detection with last-triggered dates
 
 ### Understanding Suggestion Output
 
@@ -138,6 +141,97 @@ Each suggestion in `sensor.automation_suggestions_top` attributes includes:
 | `consistency_score` | `0.85` | How reliably you do this at this time (0-1) |
 | `occurrence_count` | `12` | Total times this pattern was detected |
 | `id` | `light_kitchen_turn_on_07_00` | Unique ID (use with dismiss service) |
+
+## Stale Automation Detection
+
+Find automations that may need attention - either because they're broken, obsolete, or simply forgotten.
+
+### What It Detects
+
+- **Never triggered**: Automations that have never run (999+ days)
+- **Long inactive**: Automations that haven't triggered in 30+ days
+- **Disabled automations**: Clearly marked so you can review if still needed
+
+### Viewing Stale Automations
+
+**Via the Card**: The Automation Suggestions card has two tabs:
+- **Suggestions** - New automation ideas based on your patterns
+- **Stale Automations** - Automations that may need review
+
+**Via WebSocket API**:
+```yaml
+# List stale automations with pagination
+type: automation_suggestions/list_stale
+page: 1
+page_size: 20
+```
+
+### UI Mockup
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Automation Suggestions                      [Scan Now] │
+├─────────────────────────────────────────────────────────┤
+│  ┌──────────────────┐ ┌─────────────────────────┐       │
+│  │  Suggestions (3) │ │  Stale Automations (5)  │       │
+│  └──────────────────┘ └─────────────────────────┘       │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ Morning Lights                              [x]  │   │
+│  │ Last triggered: Never (Never triggered)          │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ Climate Away Mode               [Disabled] [x]  │   │
+│  │ Last triggered: 2025-10-15 (103 days ago)        │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ Doorbell Alert                              [x]  │   │
+│  │ Last triggered: 2025-11-28 (59 days ago)         │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ Guest Room Lights                           [x]  │   │
+│  │ Last triggered: 2025-12-01 (56 days ago)         │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ Movie Time Scene                            [x]  │   │
+│  │ Last triggered: 2025-12-20 (37 days ago)         │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Stale Automation Properties
+
+| Field | Example | Description |
+|-------|---------|-------------|
+| `automation_id` | `automation.morning_lights` | Entity ID |
+| `friendly_name` | `Morning Lights` | Display name |
+| `last_triggered` | `2025-12-20T08:00:00Z` | Last trigger timestamp (null if never) |
+| `days_since_triggered` | `37` | Days since last trigger (999 if never) |
+| `is_disabled` | `false` | Whether automation is disabled |
+
+### Why Automations Go Stale
+
+1. **Seasonal**: Holiday decorations, summer/winter routines
+2. **Broken triggers**: Device renamed, integration changed
+3. **Obsolete**: Old routines you no longer need
+4. **Redundant**: Replaced by a better automation
+5. **Never worked**: Created but never properly triggered
+
+### Taking Action
+
+For each stale automation, you can:
+- **Review it**: Check if the trigger conditions are still valid
+- **Test it**: Manually trigger to verify it works
+- **Update it**: Fix broken entity references
+- **Disable it**: If seasonal, disable until needed
+- **Delete it**: Remove if truly obsolete
+- **Dismiss it**: Hide from the list if intentionally inactive
 
 ## Actions
 

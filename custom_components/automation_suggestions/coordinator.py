@@ -373,6 +373,15 @@ class AutomationSuggestionsCoordinator(DataUpdateCoordinator[list[Suggestion]]):
                     }
                     for state in self.hass.states.async_all("automation")
                 ]
+
+                # DEBUG: Log what last_triggered values we see from state machine
+                for auto_state in automation_states:
+                    _LOGGER.debug(
+                        "Coordinator sees automation: entity_id=%s, last_triggered=%r",
+                        auto_state["entity_id"],
+                        auto_state["attributes"].get("last_triggered"),
+                    )
+
                 self._stale_automations = find_stale_automations(
                     automation_states,
                     self._stale_threshold_days,

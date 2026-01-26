@@ -1,0 +1,9 @@
+- id: "preexisting_test_automation"
+  alias: "Pre-existing Test Automation"
+  trigger:
+    - platform: time
+      at: "00:00:00"
+  action:
+    - service: logger.log
+      data:
+        message: "Pre-existing test automation"

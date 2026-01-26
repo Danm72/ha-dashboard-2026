@@ -117,6 +117,54 @@ For tests requiring auth:
 4. Copy `.storage/` directory to `tests/e2e/initial_test_state/`
 5. Update `TEST_TOKEN` in `conftest.py`
 
+## Visual E2E Tests (CRITICAL QA)
+
+**Visual E2E testing with Chrome MCP is a CRITICAL part of QA.** Unit and integration tests verify logic, but visual tests verify the actual user experience in a real browser against a real Home Assistant instance.
+
+### Why Visual E2E is Critical
+
+- Catches UI rendering issues that mocked tests miss
+- Verifies Lovelace card JavaScript works in real HA environment
+- Tests WebSocket subscriptions with real coordinator updates
+- Validates CSS styling, tab switching, button interactions
+- Screenshots provide evidence that features actually work
+
+### Running Visual E2E Tests
+
+```bash
+# 1. Start the Docker container with custom component
+python tests/e2e/start_visual_test.py
+
+# 2. Use Chrome MCP tools to run visual tests:
+#    - Navigate to the HA URL printed by the script
+#    - Complete onboarding if fresh container
+#    - Configure the integration
+#    - Add the Lovelace card
+#    - Take screenshots and verify UI elements
+```
+
+### Visual Test Specifications
+
+Visual test procedures are documented in:
+- `tests/e2e/visual_test_stale_automations.md` - Stale automation card tests
+
+### Chrome MCP Tools for Visual Testing
+
+Key tools for visual E2E:
+- `mcp__claude-in-chrome__tabs_context_mcp` - Get browser tab context
+- `mcp__claude-in-chrome__navigate` - Navigate to URLs
+- `mcp__claude-in-chrome__computer` (action: screenshot) - Take screenshots
+- `mcp__claude-in-chrome__read_page` - Read DOM/accessibility tree
+- `mcp__claude-in-chrome__computer` (action: left_click) - Click elements
+
+### QA Checklist
+
+Before merging any Lovelace card changes:
+- [ ] Unit tests pass
+- [ ] Integration tests pass
+- [ ] E2E API tests pass
+- [ ] **Visual E2E tests pass with screenshots** ← CRITICAL
+
 ## Architecture
 
 ### Key Components

@@ -196,10 +196,10 @@ class AutomationSuggestionsCard extends HTMLElement {
     return `
       <div class="tabs">
         <button class="tab-btn ${this._activeTab === "suggestions" ? "active" : ""}" data-tab="suggestions">
-          Suggestions (${suggCount})
+          Opportunities (${suggCount})
         </button>
         <button class="tab-btn ${this._activeTab === "stale" ? "active" : ""}" data-tab="stale">
-          Stale (${staleCount})
+          Stale Automations (${staleCount})
         </button>
       </div>
     `;
@@ -366,7 +366,10 @@ class AutomationSuggestionsCard extends HTMLElement {
 
     this.innerHTML = `
       <ha-card>
-        <div class="card-header">Automation Suggestions</div>
+        <div class="card-header">
+          <span class="header-title">Automation Suggestions</span>
+          <span class="header-subtitle">Patterns detected from your usage &amp; automations needing attention</span>
+        </div>
         ${tabsHtml}
         ${contentHtml}
         <div class="card-actions">
@@ -400,12 +403,19 @@ class AutomationSuggestionsCard extends HTMLElement {
       }
       .card-header {
         padding: 16px;
-        font-size: 1.2em;
-        font-weight: 500;
         border-bottom: 1px solid var(--divider-color);
         display: flex;
-        align-items: center;
-        gap: 8px;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .header-title {
+        font-size: 1.2em;
+        font-weight: 500;
+      }
+      .header-subtitle {
+        font-size: 0.75rem;
+        color: var(--secondary-text-color);
+        font-weight: 400;
       }
       .tabs {
         display: flex;
