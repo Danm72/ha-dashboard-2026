@@ -4,6 +4,8 @@
 
 A custom Home Assistant integration that analyzes your manual actions from the logbook and suggests automations you might want to create. Stop doing the same things manually - let your smart home learn your patterns.
 
+https://www.dan-malone.com/blog/home-assistant-automation-integration-part-4
+
 ## Features
 
 - **Pattern Detection**: Analyzes logbook history to find repeated manual actions
